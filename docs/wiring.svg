@@ -1,119 +1,218 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" font-family="Helvetica, Arial, sans-serif">
-  <rect width="900" height="600" fill="#ffffff"/>
-  <text x="450" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a1a">Pharmatrace firmware: cableado ESP32 (esquema lógico)</text>
-
-  <!-- ESP32 block -->
-  <rect x="60" y="50" width="180" height="440" rx="10" fill="#e8eef7" stroke="#2b4a7a" stroke-width="2"/>
-  <text x="150" y="85" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a1a1a">ESP32 DevKit</text>
-  <text x="150" y="105" text-anchor="middle" font-size="12" fill="#444">(ESP32-WROOM-32)</text>
-
-  <!-- ESP32 pins (right edge x=240) -->
-  <g font-size="12" fill="#1a1a1a" text-anchor="end">
-    <text x="228" y="134">3V3</text>
-    <text x="228" y="164">GND</text>
-    <text x="228" y="214">GPIO21 (SDA)</text>
-    <text x="228" y="244">GPIO22 (SCL)</text>
-    <text x="228" y="314">GPIO16 (RX2)</text>
-    <text x="228" y="344">GPIO17 (TX2)</text>
-    <text x="228" y="424">GPIO27</text>
-  </g>
-  <g fill="#1a1a1a">
-    <circle cx="240" cy="130" r="4"/><circle cx="240" cy="160" r="4"/>
-    <circle cx="240" cy="210" r="4"/><circle cx="240" cy="240" r="4"/>
-    <circle cx="240" cy="310" r="4"/><circle cx="240" cy="340" r="4"/>
-    <circle cx="240" cy="420" r="4"/>
-  </g>
-
-  <!-- Modules -->
-  <g stroke-width="2" fill="#f4f4f4" stroke="#555">
-    <rect x="600" y="60" width="240" height="110" rx="8"/>
-    <rect x="600" y="190" width="240" height="110" rx="8"/>
-    <rect x="600" y="320" width="240" height="120" rx="8"/>
-    <rect x="600" y="460" width="240" height="70" rx="8"/>
-  </g>
-  <g font-size="14" font-weight="bold" fill="#1a1a1a">
-    <text x="735" y="82" text-anchor="middle">SHT31 (I2C 0x44)</text>
-    <text x="735" y="212" text-anchor="middle">MPU6050 (I2C 0x68)</text>
-    <text x="735" y="342" text-anchor="middle">GPS NEO-6M (UART)</text>
-    <text x="735" y="482" text-anchor="middle">Reed switch (tapa)</text>
-  </g>
-
-  <!-- Module pin labels (left edge x=600) -->
-  <g font-size="12" fill="#1a1a1a">
-    <text x="612" y="104">VIN</text><text x="612" y="124">GND</text><text x="612" y="144">SDA</text><text x="612" y="164">SCL</text>
-    <text x="612" y="234">VCC</text><text x="612" y="254">GND</text><text x="612" y="274">SDA</text><text x="612" y="294">SCL</text>
-    <text x="612" y="364">VCC</text><text x="612" y="384">GND</text><text x="612" y="404">TX</text><text x="612" y="424">RX</text>
-    <text x="612" y="504">Pin 1</text><text x="612" y="524">Pin 2</text>
-  </g>
-  <g fill="#1a1a1a">
-    <circle cx="600" cy="100" r="3.5"/><circle cx="600" cy="120" r="3.5"/><circle cx="600" cy="140" r="3.5"/><circle cx="600" cy="160" r="3.5"/>
-    <circle cx="600" cy="230" r="3.5"/><circle cx="600" cy="250" r="3.5"/><circle cx="600" cy="270" r="3.5"/><circle cx="600" cy="290" r="3.5"/>
-    <circle cx="600" cy="360" r="3.5"/><circle cx="600" cy="380" r="3.5"/><circle cx="600" cy="400" r="3.5"/><circle cx="600" cy="420" r="3.5"/>
-    <circle cx="600" cy="500" r="3.5"/><circle cx="600" cy="520" r="3.5"/>
-  </g>
-
-  <!-- 3V3 (rojo) -->
-  <g stroke="#d62828" stroke-width="2.5" fill="none">
-    <path d="M240 130 H320"/>
-    <path d="M320 100 V360"/>
-    <path d="M320 100 H600"/>
-    <path d="M320 230 H600"/>
-    <path d="M320 360 H600"/>
-  </g>
-  <g fill="#d62828"><circle cx="320" cy="130" r="4"/><circle cx="320" cy="100" r="4"/><circle cx="320" cy="230" r="4"/><circle cx="320" cy="360" r="4"/></g>
-
-  <!-- GND (negro) -->
-  <g stroke="#111" stroke-width="2.5" fill="none">
-    <path d="M240 160 H345"/>
-    <path d="M345 120 V520"/>
-    <path d="M345 120 H600"/>
-    <path d="M345 250 H600"/>
-    <path d="M345 380 H600"/>
-    <path d="M345 520 H600"/>
-  </g>
-  <g fill="#111"><circle cx="345" cy="160" r="4"/><circle cx="345" cy="120" r="4"/><circle cx="345" cy="250" r="4"/><circle cx="345" cy="380" r="4"/><circle cx="345" cy="520" r="4"/></g>
-
-  <!-- SDA (azul) -->
-  <g stroke="#1d6fd8" stroke-width="2.5" fill="none">
-    <path d="M240 210 H395"/>
-    <path d="M395 140 V270"/>
-    <path d="M395 140 H600"/>
-    <path d="M395 270 H600"/>
-  </g>
-  <g fill="#1d6fd8"><circle cx="395" cy="210" r="4"/><circle cx="395" cy="140" r="4"/><circle cx="395" cy="270" r="4"/></g>
-
-  <!-- SCL (verde) -->
-  <g stroke="#2a9d3f" stroke-width="2.5" fill="none">
-    <path d="M240 240 H420"/>
-    <path d="M420 160 V290"/>
-    <path d="M420 160 H600"/>
-    <path d="M420 290 H600"/>
-  </g>
-  <g fill="#2a9d3f"><circle cx="420" cy="240" r="4"/><circle cx="420" cy="160" r="4"/><circle cx="420" cy="290" r="4"/></g>
-
-  <!-- UART: ESP RX2 (16) <- GPS TX ; ESP TX2 (17) -> GPS RX (naranja / violeta) -->
-  <g stroke="#e07b00" stroke-width="2.5" fill="none">
-    <path d="M240 310 H500 V400 H600"/>
-  </g>
-  <g stroke="#8a3ffc" stroke-width="2.5" fill="none">
-    <path d="M240 340 H470 V420 H600"/>
-  </g>
-  <text x="506" y="394" font-size="11" fill="#e07b00">TX → GPIO16</text>
-  <text x="478" y="436" font-size="11" fill="#8a3ffc">GPIO17 → RX</text>
-
-  <!-- Reed (INPUT_PULLUP, sin resistencia externa) -->
-  <g stroke="#555" stroke-width="2.5" fill="none">
-    <path d="M240 420 H470 V500 H600"/>
-  </g>
-  <text x="478" y="494" font-size="11" fill="#555">GPIO27</text>
-
-  <!-- Legend -->
-  <g font-size="12" fill="#1a1a1a">
-    <rect x="60" y="520" width="14" height="4" fill="#d62828"/><text x="80" y="526">3V3</text>
-    <rect x="120" y="520" width="14" height="4" fill="#111"/><text x="140" y="526">GND</text>
-    <rect x="180" y="520" width="14" height="4" fill="#1d6fd8"/><text x="200" y="526">SDA</text>
-    <rect x="240" y="520" width="14" height="4" fill="#2a9d3f"/><text x="260" y="526">SCL</text>
-    <text x="60" y="560" font-size="11" fill="#555">No refleja el orden físico de pines: verificar con el pinout de tu placa. UART del GPS cruzado: TX del GPS va a RX2 y RX del GPS va a TX2.</text>
-    <text x="60" y="578" font-size="11" fill="#555">El reed switch no lleva resistencia externa: el firmware usa el pull-up interno.</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 860" width="1100" height="860" font-family="Helvetica, Arial, sans-serif">
+<rect width="1100" height="860" fill="#ffffff"/>
+<text x="550" y="30" text-anchor="middle" font-size="19" font-weight="bold" fill="#1a1a1a">Pharmatrace firmware: pinout ESP32 DevKit V1 y cableado</text>
+<rect x="420" y="60" width="200" height="640" rx="12" fill="#1f2937" stroke="#0b1220" stroke-width="2"/>
+<rect x="455" y="72" width="130" height="150" rx="4" fill="#c9ced6" stroke="#8a919c" stroke-width="1.5"/>
+<path d="M462 82 h22 v10 h22 v-10 h22 v10 h22 v-10 h18" fill="none" stroke="#7a828f" stroke-width="3"/>
+<text x="520" y="150" text-anchor="middle" font-size="13" font-weight="bold" fill="#222">ESP-WROOM-32</text>
+<text x="520" y="168" text-anchor="middle" font-size="10" fill="#444">WiFi + Bluetooth</text>
+<text x="520" y="330" text-anchor="middle" font-size="11" fill="#9ca3af">ESP32 DevKit V1</text>
+<text x="520" y="346" text-anchor="middle" font-size="11" fill="#9ca3af">30 pines</text>
+<rect x="458" y="650" width="26" height="22" rx="3" fill="#9ca3af"/><text x="471" y="688" text-anchor="middle" font-size="9" fill="#9ca3af">EN</text>
+<rect x="556" y="650" width="26" height="22" rx="3" fill="#9ca3af"/><text x="569" y="688" text-anchor="middle" font-size="9" fill="#9ca3af">BOOT</text>
+<rect x="492" y="684" width="56" height="38" rx="4" fill="#9ca3af" stroke="#6b7280" stroke-width="2"/>
+<text x="520" y="740" text-anchor="middle" font-size="11" fill="#555">USB (alimentacion y serial)</text>
+<line x1="408" y1="130" x2="420" y2="130" stroke="#999" stroke-width="2"/>
+<rect x="300" y="118" width="108" height="24" rx="5" fill="#eeeeee" stroke="#777777" stroke-width="1.5"/>
+<text x="354" y="134" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">EN</text>
+<circle cx="420" cy="130" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="168" x2="420" y2="168" stroke="#999" stroke-width="2"/>
+<rect x="300" y="156" width="108" height="24" rx="5" fill="#d9f2ef" stroke="#1b8a7e" stroke-width="1.5"/>
+<text x="354" y="172" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO36 · VP</text>
+<circle cx="420" cy="168" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="206" x2="420" y2="206" stroke="#999" stroke-width="2"/>
+<rect x="300" y="194" width="108" height="24" rx="5" fill="#d9f2ef" stroke="#1b8a7e" stroke-width="1.5"/>
+<text x="354" y="210" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO39 · VN</text>
+<circle cx="420" cy="206" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="244" x2="420" y2="244" stroke="#999" stroke-width="2"/>
+<rect x="300" y="232" width="108" height="24" rx="5" fill="#d9f2ef" stroke="#1b8a7e" stroke-width="1.5"/>
+<text x="354" y="248" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO34</text>
+<circle cx="420" cy="244" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="282" x2="420" y2="282" stroke="#999" stroke-width="2"/>
+<rect x="300" y="270" width="108" height="24" rx="5" fill="#d9f2ef" stroke="#1b8a7e" stroke-width="1.5"/>
+<text x="354" y="286" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO35</text>
+<circle cx="420" cy="282" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="320" x2="420" y2="320" stroke="#999" stroke-width="2"/>
+<rect x="300" y="308" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="354" y="324" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO32</text>
+<circle cx="420" cy="320" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="358" x2="420" y2="358" stroke="#999" stroke-width="2"/>
+<rect x="300" y="346" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="354" y="362" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO33</text>
+<circle cx="420" cy="358" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="396" x2="420" y2="396" stroke="#999" stroke-width="2"/>
+<rect x="300" y="384" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="354" y="400" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO25</text>
+<circle cx="420" cy="396" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="434" x2="420" y2="434" stroke="#999" stroke-width="2"/>
+<rect x="300" y="422" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="354" y="438" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO26</text>
+<circle cx="420" cy="434" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="472" x2="420" y2="472" stroke="#999" stroke-width="2"/>
+<rect x="300" y="460" width="108" height="24" rx="5" fill="#ffffff" stroke="#555555" stroke-width="3"/>
+<text x="354" y="476" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">GPIO27 · REED</text>
+<circle cx="420" cy="472" r="5" fill="#555555" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="510" x2="420" y2="510" stroke="#999" stroke-width="2"/>
+<rect x="300" y="498" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="354" y="514" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO14</text>
+<circle cx="420" cy="510" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="548" x2="420" y2="548" stroke="#999" stroke-width="2"/>
+<rect x="300" y="536" width="108" height="24" rx="5" fill="#fff6bf" stroke="#b59b00" stroke-width="1.5"/>
+<text x="354" y="552" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO12 · boot</text>
+<circle cx="420" cy="548" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="586" x2="420" y2="586" stroke="#999" stroke-width="2"/>
+<rect x="300" y="574" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="354" y="590" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO13</text>
+<circle cx="420" cy="586" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="624" x2="420" y2="624" stroke="#999" stroke-width="2"/>
+<rect x="300" y="612" width="108" height="24" rx="5" fill="#e4e4e4" stroke="#111111" stroke-width="1.5"/>
+<text x="354" y="628" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GND</text>
+<circle cx="420" cy="624" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="408" y1="662" x2="420" y2="662" stroke="#999" stroke-width="2"/>
+<rect x="300" y="650" width="108" height="24" rx="5" fill="#fde2e2" stroke="#d62828" stroke-width="1.5"/>
+<text x="354" y="666" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">VIN (5V)</text>
+<circle cx="420" cy="662" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="130" x2="632" y2="130" stroke="#999" stroke-width="2"/>
+<rect x="632" y="118" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="686" y="134" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO23</text>
+<circle cx="620" cy="130" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="168" x2="632" y2="168" stroke="#999" stroke-width="2"/>
+<rect x="632" y="156" width="108" height="24" rx="5" fill="#ffffff" stroke="#2a9d3f" stroke-width="3"/>
+<text x="686" y="172" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">GPIO22 · SCL</text>
+<circle cx="620" cy="168" r="5" fill="#2a9d3f" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="206" x2="632" y2="206" stroke="#999" stroke-width="2"/>
+<rect x="632" y="194" width="108" height="24" rx="5" fill="#eeeeee" stroke="#777777" stroke-width="1.5"/>
+<text x="686" y="210" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO1 · TX0</text>
+<circle cx="620" cy="206" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="244" x2="632" y2="244" stroke="#999" stroke-width="2"/>
+<rect x="632" y="232" width="108" height="24" rx="5" fill="#eeeeee" stroke="#777777" stroke-width="1.5"/>
+<text x="686" y="248" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO3 · RX0</text>
+<circle cx="620" cy="244" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="282" x2="632" y2="282" stroke="#999" stroke-width="2"/>
+<rect x="632" y="270" width="108" height="24" rx="5" fill="#ffffff" stroke="#1d6fd8" stroke-width="3"/>
+<text x="686" y="286" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">GPIO21 · SDA</text>
+<circle cx="620" cy="282" r="5" fill="#1d6fd8" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="320" x2="632" y2="320" stroke="#999" stroke-width="2"/>
+<rect x="632" y="308" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="686" y="324" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO19</text>
+<circle cx="620" cy="320" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="358" x2="632" y2="358" stroke="#999" stroke-width="2"/>
+<rect x="632" y="346" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="686" y="362" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO18</text>
+<circle cx="620" cy="358" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="396" x2="632" y2="396" stroke="#999" stroke-width="2"/>
+<rect x="632" y="384" width="108" height="24" rx="5" fill="#fff6bf" stroke="#b59b00" stroke-width="1.5"/>
+<text x="686" y="400" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO5 · boot</text>
+<circle cx="620" cy="396" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="434" x2="632" y2="434" stroke="#999" stroke-width="2"/>
+<rect x="632" y="422" width="108" height="24" rx="5" fill="#ffffff" stroke="#c2185b" stroke-width="3"/>
+<text x="686" y="438" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">GPIO17 · TX2</text>
+<circle cx="620" cy="434" r="5" fill="#c2185b" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="472" x2="632" y2="472" stroke="#999" stroke-width="2"/>
+<rect x="632" y="460" width="108" height="24" rx="5" fill="#ffffff" stroke="#8d5524" stroke-width="3"/>
+<text x="686" y="476" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">GPIO16 · RX2</text>
+<circle cx="620" cy="472" r="5" fill="#8d5524" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="510" x2="632" y2="510" stroke="#999" stroke-width="2"/>
+<rect x="632" y="498" width="108" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+<text x="686" y="514" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO4</text>
+<circle cx="620" cy="510" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="548" x2="632" y2="548" stroke="#999" stroke-width="2"/>
+<rect x="632" y="536" width="108" height="24" rx="5" fill="#fff6bf" stroke="#b59b00" stroke-width="1.5"/>
+<text x="686" y="552" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO2 · boot</text>
+<circle cx="620" cy="548" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="586" x2="632" y2="586" stroke="#999" stroke-width="2"/>
+<rect x="632" y="574" width="108" height="24" rx="5" fill="#fff6bf" stroke="#b59b00" stroke-width="1.5"/>
+<text x="686" y="590" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GPIO15 · boot</text>
+<circle cx="620" cy="586" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="624" x2="632" y2="624" stroke="#999" stroke-width="2"/>
+<rect x="632" y="612" width="108" height="24" rx="5" fill="#e4e4e4" stroke="#111111" stroke-width="1.5"/>
+<text x="686" y="628" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">GND</text>
+<circle cx="620" cy="624" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<line x1="620" y1="662" x2="632" y2="662" stroke="#999" stroke-width="2"/>
+<rect x="632" y="650" width="108" height="24" rx="5" fill="#fde2e2" stroke="#d62828" stroke-width="1.5"/>
+<text x="686" y="666" text-anchor="middle" font-size="12" font-weight="normal" fill="#1a1a1a">3V3</text>
+<circle cx="620" cy="662" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="900" y="80" width="180" height="134" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="990" y="100" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">SHT31 (I2C 0x44)</text>
+<text x="912" y="129" font-size="12" fill="#1a1a1a">VIN</text>
+<circle cx="900" cy="125" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="154" font-size="12" fill="#1a1a1a">GND</text>
+<circle cx="900" cy="150" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="179" font-size="12" fill="#1a1a1a">SDA</text>
+<circle cx="900" cy="175" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="204" font-size="12" fill="#1a1a1a">SCL</text>
+<circle cx="900" cy="200" r="3.5" fill="#1a1a1a"/>
+<rect x="900" y="232" width="180" height="134" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="990" y="252" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">MPU6050 (I2C 0x68)</text>
+<text x="912" y="281" font-size="12" fill="#1a1a1a">VCC</text>
+<circle cx="900" cy="277" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="306" font-size="12" fill="#1a1a1a">GND</text>
+<circle cx="900" cy="302" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="331" font-size="12" fill="#1a1a1a">SDA</text>
+<circle cx="900" cy="327" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="356" font-size="12" fill="#1a1a1a">SCL</text>
+<circle cx="900" cy="352" r="3.5" fill="#1a1a1a"/>
+<rect x="900" y="400" width="180" height="134" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="990" y="420" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">GPS NEO-6M (UART)</text>
+<text x="912" y="449" font-size="12" fill="#1a1a1a">VCC</text>
+<circle cx="900" cy="445" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="474" font-size="12" fill="#1a1a1a">GND</text>
+<circle cx="900" cy="470" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="499" font-size="12" fill="#1a1a1a">TX</text>
+<circle cx="900" cy="495" r="3.5" fill="#1a1a1a"/>
+<text x="912" y="524" font-size="12" fill="#1a1a1a">RX</text>
+<circle cx="900" cy="520" r="3.5" fill="#1a1a1a"/>
+<rect x="30" y="430" width="140" height="94" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="100" y="450" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">Reed switch (tapa)</text>
+<text x="42" y="476" font-size="12" fill="#1a1a1a">Pin 1</text>
+<circle cx="170" cy="472" r="3.5" fill="#1a1a1a"/>
+<text x="42" y="504" font-size="12" fill="#1a1a1a">Pin 2</text>
+<circle cx="170" cy="500" r="3.5" fill="#1a1a1a"/>
+<path d="M740 662 H760 V125 M760 125 H900 M760 277 H900 M760 445 H900" fill="none" stroke="#d62828" stroke-width="2.5"/>
+<circle cx="760" cy="125" r="4" fill="#d62828"/>
+<circle cx="760" cy="277" r="4" fill="#d62828"/>
+<circle cx="760" cy="445" r="4" fill="#d62828"/>
+<circle cx="760" cy="662" r="4" fill="#d62828"/>
+<path d="M740 624 H785 V150 M785 150 H900 M785 302 H900 M785 470 H900" fill="none" stroke="#111111" stroke-width="2.5"/>
+<circle cx="785" cy="150" r="4" fill="#111111"/>
+<circle cx="785" cy="302" r="4" fill="#111111"/>
+<circle cx="785" cy="470" r="4" fill="#111111"/>
+<circle cx="785" cy="624" r="4" fill="#111111"/>
+<path d="M740 282 H810 M810 175 V327 M810 175 H900 M810 327 H900" fill="none" stroke="#1d6fd8" stroke-width="2.5"/>
+<circle cx="810" cy="175" r="4" fill="#1d6fd8"/>
+<circle cx="810" cy="327" r="4" fill="#1d6fd8"/>
+<circle cx="810" cy="282" r="4" fill="#1d6fd8"/>
+<path d="M740 168 H835 M835 168 V352 M835 200 H900 M835 352 H900" fill="none" stroke="#2a9d3f" stroke-width="2.5"/>
+<circle cx="835" cy="200" r="4" fill="#2a9d3f"/>
+<circle cx="835" cy="352" r="4" fill="#2a9d3f"/>
+<circle cx="835" cy="168" r="4" fill="#2a9d3f"/>
+<path d="M740 472 H860 V495 H900" fill="none" stroke="#8d5524" stroke-width="2.5"/>
+<path d="M740 434 H878 V520 H900" fill="none" stroke="#c2185b" stroke-width="2.5"/>
+<path d="M300 472 H170" fill="none" stroke="#555555" stroke-width="2.5"/>
+<path d="M300 624 H210 V500 H170" fill="none" stroke="#111111" stroke-width="2.5"/>
+<circle cx="210" cy="500" r="4" fill="#111111"/>
+<rect x="30" y="761" width="22" height="14" rx="3" fill="#fde2e2" stroke="#d62828" stroke-width="2"/>
+<text x="60" y="772" font-size="12" fill="#1a1a1a">Alimentacion</text>
+<rect x="158.8" y="761" width="22" height="14" rx="3" fill="#e4e4e4" stroke="#111111" stroke-width="2"/>
+<text x="188.8" y="772" font-size="12" fill="#1a1a1a">GND</text>
+<rect x="230.0" y="761" width="22" height="14" rx="3" fill="#ffffff" stroke="#1d6fd8" stroke-width="2"/>
+<text x="260.0" y="772" font-size="12" fill="#1a1a1a">Usado en este proyecto</text>
+<rect x="422.8" y="761" width="22" height="14" rx="3" fill="#d9f2ef" stroke="#1b8a7e" stroke-width="2"/>
+<text x="452.8" y="772" font-size="12" fill="#1a1a1a">Solo entrada</text>
+<rect x="551.6" y="761" width="22" height="14" rx="3" fill="#fff6bf" stroke="#b59b00" stroke-width="2"/>
+<text x="581.6" y="772" font-size="12" fill="#1a1a1a">Boot (evitar tirar a GND/3V3 al arrancar)</text>
+<rect x="866.0" y="761" width="22" height="14" rx="3" fill="#eeeeee" stroke="#777777" stroke-width="2"/>
+<text x="896.0" y="772" font-size="12" fill="#1a1a1a">Serial USB / control</text>
+<rect x="30" y="790" width="22" height="4" fill="#8d5524"/>
+<text x="60" y="798" font-size="12" fill="#1a1a1a">GPS TX → GPIO16 (RX2)</text>
+<rect x="216.4" y="790" width="22" height="4" fill="#c2185b"/>
+<text x="246.4" y="798" font-size="12" fill="#1a1a1a">GPIO17 (TX2) → GPS RX</text>
+<rect x="402.8" y="790" width="22" height="4" fill="#555555"/>
+<text x="432.8" y="798" font-size="12" fill="#1a1a1a">GPIO27 → Reed switch</text>
+<rect x="582.8" y="790" width="22" height="4" fill="#1d6fd8"/>
+<text x="612.8" y="798" font-size="12" fill="#1a1a1a">SDA</text>
+<rect x="654.0" y="790" width="22" height="4" fill="#2a9d3f"/>
+<text x="684.0" y="798" font-size="12" fill="#1a1a1a">SCL</text>
+<text x="30" y="830" font-size="11" fill="#555">Orden fisico del DevKit V1 de 30 pines (USB abajo). La version de 38 pines tiene otro orden: verificar contra la serigrafia de tu placa.</text>
+<text x="30" y="846" font-size="11" fill="#555">UART del GPS cruzado. El reed switch usa el pull-up interno (INPUT_PULLUP), sin resistencia externa.</text>
 </svg>

@@ -29,7 +29,7 @@ platformio.ini        Entorno de build
 
 ![Diagrama de cableado ESP32](docs/wiring.svg)
 
-Los pines salen de `include/config.h`. El diagrama es un esquema lógico: no sigue el orden físico de pines de la placa, así que verificá cada GPIO contra el pinout de tu DevKit antes de soldar.
+Los pines salen de `include/config.h`. El diagrama respeta el orden físico del ESP32 DevKit V1 de **30 pines** (USB abajo); la versión de 38 pines tiene otro orden, así que verificá cada GPIO contra la serigrafia de tu placa antes de soldar. Los pines marcados como *boot* (GPIO2, 5, 12, 15) condicionan el arranque: no conviene forzarlos a un nivel externo.
 
 | Módulo | Pin del módulo | ESP32 |
 |---|---|---|
