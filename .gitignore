@@ -1,0 +1,5 @@
+.pio/
+.vscode/
+*.pyc
+# Secretos locales (WiFi, claves, endpoints)
+include/secrets.h
