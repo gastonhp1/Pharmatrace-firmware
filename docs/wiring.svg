@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" font-family="Helvetica, Arial, sans-serif">
+  <rect width="900" height="600" fill="#ffffff"/>
+  <text x="450" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a1a">Pharmatrace firmware: cableado ESP32 (esquema lógico)</text>
+
+  <!-- ESP32 block -->
+  <rect x="60" y="50" width="180" height="440" rx="10" fill="#e8eef7" stroke="#2b4a7a" stroke-width="2"/>
+  <text x="150" y="85" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a1a1a">ESP32 DevKit</text>
+  <text x="150" y="105" text-anchor="middle" font-size="12" fill="#444">(ESP32-WROOM-32)</text>
+
+  <!-- ESP32 pins (right edge x=240) -->
+  <g font-size="12" fill="#1a1a1a" text-anchor="end">
+    <text x="228" y="134">3V3</text>
+    <text x="228" y="164">GND</text>
+    <text x="228" y="214">GPIO21 (SDA)</text>
+    <text x="228" y="244">GPIO22 (SCL)</text>
+    <text x="228" y="314">GPIO16 (RX2)</text>
+    <text x="228" y="344">GPIO17 (TX2)</text>
+    <text x="228" y="424">GPIO27</text>
+  </g>
+  <g fill="#1a1a1a">
+    <circle cx="240" cy="130" r="4"/><circle cx="240" cy="160" r="4"/>
+    <circle cx="240" cy="210" r="4"/><circle cx="240" cy="240" r="4"/>
+    <circle cx="240" cy="310" r="4"/><circle cx="240" cy="340" r="4"/>
+    <circle cx="240" cy="420" r="4"/>
+  </g>
+
+  <!-- Modules -->
+  <g stroke-width="2" fill="#f4f4f4" stroke="#555">
+    <rect x="600" y="60" width="240" height="110" rx="8"/>
+    <rect x="600" y="190" width="240" height="110" rx="8"/>
+    <rect x="600" y="320" width="240" height="120" rx="8"/>
+    <rect x="600" y="460" width="240" height="70" rx="8"/>
+  </g>
+  <g font-size="14" font-weight="bold" fill="#1a1a1a">
+    <text x="735" y="82" text-anchor="middle">SHT31 (I2C 0x44)</text>
+    <text x="735" y="212" text-anchor="middle">MPU6050 (I2C 0x68)</text>
+    <text x="735" y="342" text-anchor="middle">GPS NEO-6M (UART)</text>
+    <text x="735" y="482" text-anchor="middle">Reed switch (tapa)</text>
+  </g>
+
+  <!-- Module pin labels (left edge x=600) -->
+  <g font-size="12" fill="#1a1a1a">
+    <text x="612" y="104">VIN</text><text x="612" y="124">GND</text><text x="612" y="144">SDA</text><text x="612" y="164">SCL</text>
+    <text x="612" y="234">VCC</text><text x="612" y="254">GND</text><text x="612" y="274">SDA</text><text x="612" y="294">SCL</text>
+    <text x="612" y="364">VCC</text><text x="612" y="384">GND</text><text x="612" y="404">TX</text><text x="612" y="424">RX</text>
+    <text x="612" y="504">Pin 1</text><text x="612" y="524">Pin 2</text>
+  </g>
+  <g fill="#1a1a1a">
+    <circle cx="600" cy="100" r="3.5"/><circle cx="600" cy="120" r="3.5"/><circle cx="600" cy="140" r="3.5"/><circle cx="600" cy="160" r="3.5"/>
+    <circle cx="600" cy="230" r="3.5"/><circle cx="600" cy="250" r="3.5"/><circle cx="600" cy="270" r="3.5"/><circle cx="600" cy="290" r="3.5"/>
+    <circle cx="600" cy="360" r="3.5"/><circle cx="600" cy="380" r="3.5"/><circle cx="600" cy="400" r="3.5"/><circle cx="600" cy="420" r="3.5"/>
+    <circle cx="600" cy="500" r="3.5"/><circle cx="600" cy="520" r="3.5"/>
+  </g>
+
+  <!-- 3V3 (rojo) -->
+  <g stroke="#d62828" stroke-width="2.5" fill="none">
+    <path d="M240 130 H320"/>
+    <path d="M320 100 V360"/>
+    <path d="M320 100 H600"/>
+    <path d="M320 230 H600"/>
+    <path d="M320 360 H600"/>
+  </g>
+  <g fill="#d62828"><circle cx="320" cy="130" r="4"/><circle cx="320" cy="100" r="4"/><circle cx="320" cy="230" r="4"/><circle cx="320" cy="360" r="4"/></g>
+
+  <!-- GND (negro) -->
+  <g stroke="#111" stroke-width="2.5" fill="none">
+    <path d="M240 160 H345"/>
+    <path d="M345 120 V520"/>
+    <path d="M345 120 H600"/>
+    <path d="M345 250 H600"/>
+    <path d="M345 380 H600"/>
+    <path d="M345 520 H600"/>
+  </g>
+  <g fill="#111"><circle cx="345" cy="160" r="4"/><circle cx="345" cy="120" r="4"/><circle cx="345" cy="250" r="4"/><circle cx="345" cy="380" r="4"/><circle cx="345" cy="520" r="4"/></g>
+
+  <!-- SDA (azul) -->
+  <g stroke="#1d6fd8" stroke-width="2.5" fill="none">
+    <path d="M240 210 H395"/>
+    <path d="M395 140 V270"/>
+    <path d="M395 140 H600"/>
+    <path d="M395 270 H600"/>
+  </g>
+  <g fill="#1d6fd8"><circle cx="395" cy="210" r="4"/><circle cx="395" cy="140" r="4"/><circle cx="395" cy="270" r="4"/></g>
+
+  <!-- SCL (verde) -->
+  <g stroke="#2a9d3f" stroke-width="2.5" fill="none">
+    <path d="M240 240 H420"/>
+    <path d="M420 160 V290"/>
+    <path d="M420 160 H600"/>
+    <path d="M420 290 H600"/>
+  </g>
+  <g fill="#2a9d3f"><circle cx="420" cy="240" r="4"/><circle cx="420" cy="160" r="4"/><circle cx="420" cy="290" r="4"/></g>
+
+  <!-- UART: ESP RX2 (16) <- GPS TX ; ESP TX2 (17) -> GPS RX (naranja / violeta) -->
+  <g stroke="#e07b00" stroke-width="2.5" fill="none">
+    <path d="M240 310 H500 V400 H600"/>
+  </g>
+  <g stroke="#8a3ffc" stroke-width="2.5" fill="none">
+    <path d="M240 340 H470 V420 H600"/>
+  </g>
+  <text x="506" y="394" font-size="11" fill="#e07b00">TX → GPIO16</text>
+  <text x="478" y="436" font-size="11" fill="#8a3ffc">GPIO17 → RX</text>
+
+  <!-- Reed (INPUT_PULLUP, sin resistencia externa) -->
+  <g stroke="#555" stroke-width="2.5" fill="none">
+    <path d="M240 420 H470 V500 H600"/>
+  </g>
+  <text x="478" y="494" font-size="11" fill="#555">GPIO27</text>
+
+  <!-- Legend -->
+  <g font-size="12" fill="#1a1a1a">
+    <rect x="60" y="520" width="14" height="4" fill="#d62828"/><text x="80" y="526">3V3</text>
+    <rect x="120" y="520" width="14" height="4" fill="#111"/><text x="140" y="526">GND</text>
+    <rect x="180" y="520" width="14" height="4" fill="#1d6fd8"/><text x="200" y="526">SDA</text>
+    <rect x="240" y="520" width="14" height="4" fill="#2a9d3f"/><text x="260" y="526">SCL</text>
+    <text x="60" y="560" font-size="11" fill="#555">No refleja el orden físico de pines: verificar con el pinout de tu placa. UART del GPS cruzado: TX del GPS va a RX2 y RX del GPS va a TX2.</text>
+    <text x="60" y="578" font-size="11" fill="#555">El reed switch no lleva resistencia externa: el firmware usa el pull-up interno.</text>
+  </g>
+</svg>
