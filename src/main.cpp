@@ -1,51 +1,195 @@
+// Nodo de la PharmaBox: sensa, firma cada lectura con el ATECC608B y la sube al gateway.
+//
+// Flujo: muestrear -> armar el payload de 21 bytes -> SHA-256 -> firma P-256 -> cola -> POST
+// /api/iot/readings. El nodo NO habla con Fabric: el gateway (backend/ de Pharmatrace) verifica
+// la firma y ancla una raíz de Merkle por ventana en el ledger.
+//
+// ESTADO: esqueleto. La lógica del protocolo (lib/pharma_proto) está probada en la PC. Los
+// drivers de sensores, el ATECC608B y el módem son TODO, y todo lo de Arduino/ESP32 de este
+// archivo todavía NO se compiló ni se probó en hardware.
+
 #include <Arduino.h>
+#include <Preferences.h>
+#include <Wire.h>
+#include <mbedtls/sha256.h>
+
+#include <atomic>
+
 #include "config.h"
+#include "pharma_ingest.h"
+#include "pharma_queue.h"
+#include "pharma_reading.h"
+#include "secrets.h"
+#include "signer.h"
+#include "uplink.h"
 
-struct Reading {
-  uint32_t ts_ms;
-  float temp_c;
-  float humidity_pct;
-  bool lid_open;
-  bool out_of_range;
-};
+using namespace pharma;
 
-static uint32_t lastSample = 0;
-static uint32_t lastReport = 0;
+static ReadingQueue<QUEUE_CAPACITY> queue;
+static Preferences prefs;
+static Atecc608Signer signer;
+static UplinkWifi uplink;  // banco de pruebas; el transporte real es el módem (ver uplink.h)
 
-static Reading sample() {
-  Reading r{};
-  r.ts_ms = millis();
-  // TODO: leer sensores reales (SHT31/DS18B20, acelerómetro, GPS)
-  r.temp_c = NAN;
-  r.humidity_pct = NAN;
-  r.lid_open = digitalRead(PIN_LID_REED) == HIGH;
-  r.out_of_range = !isnan(r.temp_c) && (r.temp_c < TEMP_MIN_C || r.temp_c > TEMP_MAX_C);
-  return r;
+// Eventos latcheados por interrupción entre dos muestras: se reportan en la siguiente lectura.
+static std::atomic<uint8_t> pendingFlags{0};
+
+static uint32_t lastTs = 0;  // última `ts` emitida: el gateway exige ts estrictamente creciente
+static int32_t lastLatE5 = 0;
+static int32_t lastLonE5 = 0;
+static uint32_t lastSampleMs = 0;
+static uint32_t lastUploadMs = 0;
+
+static void IRAM_ATTR onLidInterrupt() { pendingFlags.fetch_or(FLAG_LID_OPENED); }
+static void IRAM_ATTR onShockInterrupt() { pendingFlags.fetch_or(FLAG_SHOCK); }
+
+// ---------------------------------------------------------------------------------------------
+// TODO(hw): drivers. Cada uno devuelve false si no hay dato válido; en ese caso se saltea la
+// muestra en vez de inventar un valor.
+// ---------------------------------------------------------------------------------------------
+
+// Hora Unix de un GPS con fix o de un RTC sincronizado. Sin hora válida no se emite nada.
+static bool readUnixTime(uint32_t&) { return false; }
+
+// TMP117 principal (0x48). El 2.º (0x49) es para comparar y detectar fallas o manipulación,
+// pero el formato v1 tiene un solo campo de temperatura: ver "Pendiente" en el README.
+static bool readTemperatureC(float&) { return false; }
+
+// SHT45 (0x44).
+static bool readHumidityPercent(float&) { return false; }
+
+// Posición del GPS. Si no hay fix se reutiliza la última conocida (el formato no tiene un bit
+// de "fix válido").
+static bool readPosition(double&, double&) { return false; }
+
+// Sello roto (NFC/NTAG 424 DNA o microswitch). Es persistente, a diferencia de tapa y golpe.
+static bool sealIsBroken() { return false; }
+
+// ---------------------------------------------------------------------------------------------
+
+// Reserva el próximo `seq` ANTES de usarlo y lo persiste: si el equipo se reinicia justo
+// después, a lo sumo queda un hueco, pero nunca se repite un `seq` con otro contenido (el
+// gateway lo rechazaría como "Sequence number already used").
+static uint32_t reserveSeq() {
+  const uint32_t seq = prefs.getUInt("seq", 0);
+  prefs.putUInt("seq", seq + 1);
+  return seq;
 }
 
-static void report() {
-  // TODO: firmar lecturas y enviarlas al backend/oráculo (MQTT o HTTPS)
-  Serial.println("[report] pendiente de implementar");
+static bool sha256(const uint8_t* data, size_t len, uint8_t out[DIGEST_SIZE]) {
+  mbedtls_sha256(data, len, out, 0);  // 2.x devuelve void y 3.x int: no se usa el retorno
+  return true;
+}
+
+static void skip(const char* why) { Serial.printf("[sample] %s, se saltea\n", why); }
+
+static void sampleOnce() {
+  uint32_t ts = 0;
+  float tempC = 0, humPct = 0;
+  if (!readUnixTime(ts)) return skip("sin hora válida");
+  if (ts <= lastTs) return skip("el reloj no avanzó");
+
+  int16_t tempCenti = 0;
+  uint16_t humCenti = 0;
+  if (!readTemperatureC(tempC) || !tempToCenti(tempC, tempCenti)) {
+    return skip("temperatura inválida");
+  }
+  if (!readHumidityPercent(humPct) || !humidityToCenti(humPct, humCenti)) {
+    return skip("humedad inválida");
+  }
+
+  double lat = 0, lon = 0;
+  int32_t latE5 = 0, lonE5 = 0;
+  if (readPosition(lat, lon) && latitudeToE5(lat, latE5) && longitudeToE5(lon, lonE5)) {
+    lastLatE5 = latE5;
+    lastLonE5 = lonE5;
+  }
+
+  const uint8_t seen = pendingFlags.load();
+  uint8_t flags = seen;
+  if (sealIsBroken()) flags |= FLAG_SEAL_BROKEN;
+
+  Reading r{ts, 0, tempCenti, humCenti, flags, lastLatE5, lastLonE5};
+  r.seq = reserveSeq();
+
+  SignedReading sr;
+  encodeReading(r, sr.payload);
+  uint8_t digest[DIGEST_SIZE];
+  if (!sha256(sr.payload, READING_SIZE, digest) || !signer.signDigest(digest, sr.signature)) {
+    return skip("no se pudo firmar (se pierde la lectura)");
+  }
+
+  queue.push(sr);
+  lastTs = ts;
+  pendingFlags.fetch_and(uint8_t(~seen));  // solo limpia lo que esta lectura ya reportó
+  Serial.printf("[sample] seq=%lu ts=%lu temp=%d hum=%u flags=0x%02x en cola=%u\n",
+                (unsigned long)r.seq, (unsigned long)r.ts, r.tempCenti, r.humCenti, r.flags,
+                (unsigned)queue.size());
+}
+
+static void note(const char* msg) { Serial.printf("[upload] %s\n", msg); }
+
+static void uploadPending() {
+  static SignedReading batch[UPLOAD_BATCH_MAX];
+  static char body[ingestJsonSize(sizeof(DEVICE_ID) - 1, UPLOAD_BATCH_MAX)];
+  static char response[160];
+
+  const size_t n = queue.peek(batch, UPLOAD_BATCH_MAX);
+  const size_t len = buildIngestJson(DEVICE_ID, batch, n, body, sizeof body);
+  if (len == 0) return note("no se pudo armar el JSON (revisar DEVICE_ID)");
+
+  int status = 0;
+  if (!uplink.postJson(INGEST_PATH, body, len, status, response, sizeof response)) {
+    return note("sin conexión, se reintenta más tarde");
+  }
+
+  if (status == 200) {
+    // accepted, duplicates y rejected son definitivos: reenviar una lectura rechazada la
+    // rechazaría otra vez. Un duplicado exacto no es error, así que reintentar es seguro.
+    queue.pop(n);
+    Serial.printf("[upload] 200, %u lecturas confirmadas, quedan %u. %s\n", (unsigned)n,
+                  (unsigned)queue.size(), response);
+  } else {
+    // 409: la valija no está monitoreando ningún cargamento todavía. 403: no está operativa.
+    // 400: error nuestro. En todos los casos las lecturas se conservan.
+    Serial.printf("[upload] HTTP %d, se conservan %u lecturas. %s\n", status,
+                  (unsigned)queue.size(), response);
+  }
 }
 
 void setup() {
   Serial.begin(115200);
+  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+  prefs.begin("pharma", false);
+
   pinMode(PIN_LID_REED, INPUT_PULLUP);
-  Serial.println("pharmatrace-firmware boot");
+  attachInterrupt(digitalPinToInterrupt(PIN_LID_REED), onLidInterrupt,
+                  LID_OPEN_LEVEL ? RISING : FALLING);
+  pinMode(PIN_ACCEL_INT, INPUT);
+  attachInterrupt(digitalPinToInterrupt(PIN_ACCEL_INT), onShockInterrupt, RISING);
+
+  uplink.begin();
+
+  if (!signer.begin()) {
+    Serial.println("[boot] ATECC608B no disponible: no se puede firmar, no se emitirá nada");
+    return;
+  }
+  // La pública es lo que se registra en el ledger: POST /api/iot/devices { deviceId, pubKey, ... }
+  uint8_t pub[PUBLIC_KEY_SIZE];
+  char hex[2 + 2 * PUBLIC_KEY_SIZE + 1];
+  if (signer.publicKey(pub) && toHex(pub, sizeof pub, hex, sizeof hex)) {
+    Serial.printf("[boot] deviceId=%s pubKey=%s\n", DEVICE_ID, hex);
+  }
 }
 
 void loop() {
-  const uint32_t now = millis();
+  const uint32_t nowMs = millis();  // la resta sin signo tolera el desborde de millis()
 
-  if (now - lastSample >= SAMPLE_INTERVAL_MS) {
-    lastSample = now;
-    Reading r = sample();
-    Serial.printf("[sample] t=%lu temp=%.2f hum=%.1f lid=%d oor=%d\n",
-                  (unsigned long)r.ts_ms, r.temp_c, r.humidity_pct, r.lid_open, r.out_of_range);
+  if (nowMs - lastSampleMs >= SAMPLE_INTERVAL_S * 1000UL) {
+    lastSampleMs = nowMs;
+    sampleOnce();
   }
-
-  if (now - lastReport >= REPORT_INTERVAL_MS) {
-    lastReport = now;
-    report();
+  if (!queue.empty() && nowMs - lastUploadMs >= UPLOAD_INTERVAL_S * 1000UL) {
+    lastUploadMs = nowMs;
+    uploadPending();
   }
 }
