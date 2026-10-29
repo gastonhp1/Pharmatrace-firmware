@@ -35,6 +35,27 @@ constexpr int PIN_ACCEL_INT = 5;   // INT1 del LIS3DH (golpe)
 // Depende de cómo se monte el imán: verificar en la valija.
 constexpr int LID_OPEN_LEVEL = 1;
 
+// --- Apertura autenticada (docs/unlock-protocol.md) ---
+// Pantalla e-paper por SPI (FSPI). Solo se escribe al pedir una apertura: sin batería extra.
+constexpr int PIN_EPD_SCK = 12;
+constexpr int PIN_EPD_MOSI = 11;
+constexpr int PIN_EPD_CS = 10;
+constexpr int PIN_EPD_DC = 13;
+constexpr int PIN_EPD_RST = 14;
+constexpr int PIN_EPD_BUSY = 4;
+
+// Botón "abrir" (a GND, con INPUT_PULLUP). Despierta la caja y genera un QR nuevo.
+constexpr int PIN_UNLOCK_BUTTON = 2;
+
+// Cerradura: la compuerta de un MOSFET N (con diodo de rueda libre sobre el solenoide) y un
+// microswitch que dice si el pestillo está cerrado. El solenoide NO se alimenta desde el ESP32.
+constexpr int PIN_LOCK_DRIVE = 6;
+constexpr int PIN_LOCK_SENSE = 7;  // INPUT_PULLUP; LOW = pestillo cerrado
+
+constexpr uint32_t LOCK_PULSE_MS = 1500;       // cuánto se energiza el solenoide
+constexpr uint32_t UNLOCK_CHALLENGE_TTL_MS = 120000;  // vida del QR en pantalla
+constexpr uint8_t UNLOCK_MAX_ATTEMPTS = 3;     // intentos fallidos por QR
+
 // --- Muestreo y subida ---
 // SAMPLE_INTERVAL_S debe coincidir con IOT_SAMPLE_SECONDS del gateway (por defecto 60): el
 // gateway cuenta la última lectura de cada ventana como un período de muestreo.

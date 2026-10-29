@@ -23,19 +23,6 @@ constexpr size_t kSignatureHex = 2 + 2 * SIGNATURE_SIZE;
 constexpr size_t kItemLen = sizeof(kItemA) - 1 + kPayloadHex + sizeof(kItemB) - 1 + kSignatureHex +
                             sizeof(kItemC) - 1;
 
-bool validDeviceId(const char* id, size_t& len) {
-  if (id == nullptr) return false;
-  len = strlen(id);
-  if (len == 0) return false;
-  for (size_t i = 0; i < len; i++) {
-    const char c = id[i];
-    const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-                    c == '-' || c == '_';
-    if (!ok) return false;
-  }
-  return true;
-}
-
 // Cursor de escritura con tope: nunca pasa de `cap`.
 struct Writer {
   char* out;
@@ -69,10 +56,10 @@ static_assert(ingestJsonSize(0, 2) - ingestJsonSize(0, 1) == kItemLen + 1,
 
 size_t buildIngestJson(const char* deviceId, const SignedReading* items, size_t count, char* out,
                        size_t cap) {
-  size_t idLen = 0;
   if (items == nullptr || out == nullptr) return 0;
   if (count < 1 || count > MAX_READINGS_PER_REQUEST) return 0;
-  if (!validDeviceId(deviceId, idLen)) return 0;
+  if (!isValidDeviceId(deviceId)) return 0;
+  const size_t idLen = strlen(deviceId);
 
   Writer w{out, cap};
   w.put(kHead, lit(kHead));

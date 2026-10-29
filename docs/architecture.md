@@ -51,4 +51,4 @@ El nodo **nunca** tiene una wallet ni firma transacciones. Lo único que firma s
 - **Segundo sensor de temperatura.** El formato v1 tiene un solo campo. Opciones: reportar siempre el peor caso de los dos, o usar un bit libre de `flags` para marcar que no coinciden.
 - **Calidad de posición.** Sin fix, hoy se repite la última posición conocida. Un bit de "fix válido" evitaría confundirla con una lectura nueva.
 - **Detección de huecos.** El gateway todavía no marca una ventana con un hueco de `seq` o de tiempo; el nodo ya los deja visibles.
-- **Apertura autenticada de la PharmaBox** (idea en evaluación: QR en una pantalla e-paper + celular de un actor de la cadena). Hoy una apertura legítima y una forzada son indistinguibles para el chaincode. Habría que agregar eventos de desbloqueo (otorgado y denegado) y correlacionarlos con el reed switch: una tapa abierta sin un desbloqueo previo sería apertura forzada.
+- **Apertura autenticada de la PharmaBox**: diseñada con token por BLE y firmware escrito (sin probar en hardware). Ver [unlock-protocol.md](unlock-protocol.md). Falta el lado de Pharmatrace (backend, app y eventos en el chaincode).

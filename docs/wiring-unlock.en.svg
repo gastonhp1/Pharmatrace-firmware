@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700" width="1100" height="700" font-family="Helvetica, Arial, sans-serif">
+<rect width="1100" height="700" fill="#ffffff"/>
+<text x="30" y="32" font-size="17" font-weight="bold" fill="#1a1a1a" text-anchor="start">PharmaBox: authenticated unlock (display, button and lock)</text>
+<rect x="40" y="70" width="210" height="434" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="50" y="88" font-size="12.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">ESP32-S3-DevKitC-1</text>
+<rect x="130" y="114" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="130" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO12 · SCK</text>
+<circle cx="250" cy="126" r="5" fill="#0277bd"/>
+<rect x="130" y="148" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="164" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO11 · MOSI</text>
+<circle cx="250" cy="160" r="5" fill="#0277bd"/>
+<rect x="130" y="182" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="198" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO10 · CS</text>
+<circle cx="250" cy="194" r="5" fill="#0277bd"/>
+<rect x="130" y="216" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="232" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO13 · DC</text>
+<circle cx="250" cy="228" r="5" fill="#0277bd"/>
+<rect x="130" y="250" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="266" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO14 · RST</text>
+<circle cx="250" cy="262" r="5" fill="#0277bd"/>
+<rect x="130" y="284" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="300" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO4 · BUSY</text>
+<circle cx="250" cy="296" r="5" fill="#0277bd"/>
+<rect x="130" y="318" width="120" height="24" rx="5" fill="#fff" stroke="#d62828" stroke-width="3"/>
+<text x="190" y="334" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">3V3</text>
+<circle cx="250" cy="330" r="5" fill="#d62828"/>
+<rect x="130" y="352" width="120" height="24" rx="5" fill="#fff" stroke="#111111" stroke-width="3"/>
+<text x="190" y="368" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GND</text>
+<circle cx="250" cy="364" r="5" fill="#111111"/>
+<rect x="130" y="386" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="402" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO2 · BUTTON</text>
+<circle cx="250" cy="398" r="5" fill="#0277bd"/>
+<rect x="130" y="420" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="436" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO7 · LOCK SW</text>
+<circle cx="250" cy="432" r="5" fill="#0277bd"/>
+<rect x="130" y="454" width="120" height="24" rx="5" fill="#fff" stroke="#0277bd" stroke-width="3"/>
+<text x="190" y="470" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO6 · LOCK</text>
+<circle cx="250" cy="466" r="5" fill="#0277bd"/>
+<rect x="520" y="70" width="230" height="300" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="530" y="88" font-size="12.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">SPI e-paper display</text>
+<text x="530" y="102" font-size="10" font-weight="normal" fill="#555" text-anchor="start">shows the QR; only draws power when refreshing</text>
+<text x="530" y="130" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">SCK</text>
+<circle cx="520" cy="126" r="3.5" fill="#1d6fd8"/>
+<path d="M250 126 L300 126 L300 126 L520 126" fill="none" stroke="#1d6fd8" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="158" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">DIN (MOSI)</text>
+<circle cx="520" cy="154" r="3.5" fill="#2a9d3f"/>
+<path d="M250 160 L318 160 L318 154 L520 154" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="186" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">CS</text>
+<circle cx="520" cy="182" r="3.5" fill="#e07b00"/>
+<path d="M250 194 L336 194 L336 182 L520 182" fill="none" stroke="#e07b00" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="214" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">DC</text>
+<circle cx="520" cy="210" r="3.5" fill="#6a1b9a"/>
+<path d="M250 228 L354 228 L354 210 L520 210" fill="none" stroke="#6a1b9a" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="242" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">RST</text>
+<circle cx="520" cy="238" r="3.5" fill="#ad8b00"/>
+<path d="M250 262 L372 262 L372 238 L520 238" fill="none" stroke="#ad8b00" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="270" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">BUSY</text>
+<circle cx="520" cy="266" r="3.5" fill="#555555"/>
+<path d="M250 296 L390 296 L390 266 L520 266" fill="none" stroke="#555555" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="298" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">VCC</text>
+<circle cx="520" cy="294" r="3.5" fill="#d62828"/>
+<path d="M250 330 L408 330 L408 294 L520 294" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="530" y="326" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">GND</text>
+<circle cx="520" cy="322" r="3.5" fill="#111111"/>
+<path d="M250 364 L426 364 L426 322 L520 322" fill="none" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="300" y="500" width="210" height="80" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="310" y="518" font-size="12.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Latch microswitch</text>
+<text x="310" y="532" font-size="10" font-weight="normal" fill="#555" text-anchor="start">closed = LOW (INPUT_PULLUP)</text>
+<circle cx="300" cy="556" r="3.5" fill="#0277bd"/>
+<circle cx="510" cy="556" r="3.5" fill="#111111"/>
+<text x="310" y="560" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">→ GPIO7</text>
+<text x="500" y="560" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="end">GND</text>
+<path d="M250 432 L276 432 L276 556 L300 556" fill="none" stroke="#0277bd" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="550" y="500" width="210" height="80" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="560" y="518" font-size="12.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">“Open” button</text>
+<text x="560" y="532" font-size="10" font-weight="normal" fill="#555" text-anchor="start">to GND, internal INPUT_PULLUP</text>
+<circle cx="550" cy="556" r="3.5" fill="#0277bd"/>
+<circle cx="760" cy="556" r="3.5" fill="#111111"/>
+<text x="560" y="560" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">→ GPIO2</text>
+<text x="750" y="560" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="end">GND</text>
+<path d="M250 398 L290 398 L290 488 L535 488 L535 556 L550 556" fill="none" stroke="#0277bd" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="800" y="70" width="270" height="470" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
+<text x="810" y="88" font-size="12.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Solenoid driver</text>
+<text x="810" y="102" font-size="10" font-weight="normal" fill="#555" text-anchor="start">the ESP32 does not power it</text>
+<text x="814" y="132" font-size="10.5" font-weight="bold" fill="#d62828" text-anchor="start">Solenoid +V (per its datasheet; not 3V3)</text>
+<circle cx="860" cy="155" r="5" fill="#d62828"/>
+<path d="M860 155 L860 190" fill="none" stroke="#d62828" stroke-width="3" stroke-linejoin="round"/>
+<rect x="830" y="190" width="60" height="90" rx="10" fill="#fff" stroke="#111111" stroke-width="3"/>
+<text x="860" y="240" font-size="20" font-weight="bold" fill="#1a1a1a" text-anchor="middle">M</text>
+<text x="900" y="220" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Solenoid / lock</text>
+<path d="M860 170 L820 170 L820 300 L860 300" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="810,220 830,220 820,240" fill="#fff" stroke="#111111" stroke-width="2"/>
+<line x1="810" y1="240" x2="830" y2="240" stroke="#111111" stroke-width="3"/>
+<text x="912" y="266" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">Flyback diode (1N5819 or similar)</text>
+<path d="M860 280 L860 370" fill="none" stroke="#111111" stroke-width="3" stroke-linejoin="round"/>
+<rect x="834" y="370" width="52" height="60" rx="6" fill="#fff" stroke="#111111" stroke-width="3"/>
+<text x="860" y="406" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="middle">N-MOS</text>
+<text x="896" y="392" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="start">D</text>
+<text x="896" y="428" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="start">S</text>
+<text x="828" y="400" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="end">G</text>
+<text x="910" y="400" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Logic-level N-MOSFET</text>
+<path d="M860 430 L860 460" fill="none" stroke="#111111" stroke-width="3" stroke-linejoin="round"/>
+<text x="860" y="476" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GND</text>
+<text x="810" y="520" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">~100 Ω in series and 100 kΩ to GND on the gate</text>
+<path d="M250 466 L262 466 L262 640 L770 640 L770 406 L834 406" fill="none" stroke="#0277bd" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="772" y="398" font-size="10.5" font-weight="bold" fill="#0277bd" text-anchor="start">GPIO6</text>
+<text x="30" y="640" font-size="11" font-weight="normal" fill="#333" text-anchor="start">With the pin unpowered the gate sits at GND: the lock stays closed.</text>
+<text x="30" y="658" font-size="11" font-weight="normal" fill="#333" text-anchor="start">An electronic lock is not physical security: the evidence lives in the ledger.</text>
+<text x="30" y="676" font-size="11" font-weight="normal" fill="#555" text-anchor="start">Pins not validated on hardware. Check your solenoid's voltage and current.</text>
+</svg>

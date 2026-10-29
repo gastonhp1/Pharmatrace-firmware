@@ -3,3 +3,4 @@
 *.pyc
 # Secretos locales (WiFi, claves, endpoints)
 include/secrets.h
+include/unlock_key.h

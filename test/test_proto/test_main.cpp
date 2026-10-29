@@ -150,6 +150,28 @@ static void test_ingest_json_rejects_bad_input() {
   TEST_ASSERT_EQUAL_UINT32(0, buildIngestJson("VAL-001", &item, MAX_READINGS_PER_REQUEST + 1, body, sizeof body));
 }
 
+static void test_device_id_validation() {
+  TEST_ASSERT_TRUE(isValidDeviceId("VAL-001"));
+  TEST_ASSERT_TRUE(isValidDeviceId("a_B-9"));
+  TEST_ASSERT_TRUE(isValidDeviceId("ABCDEFGHIJKLMNOPQRSTUVWX"));    // 24: el máximo
+  TEST_ASSERT_FALSE(isValidDeviceId("ABCDEFGHIJKLMNOPQRSTUVWXY"));  // 25
+  TEST_ASSERT_FALSE(isValidDeviceId(""));
+  TEST_ASSERT_FALSE(isValidDeviceId(nullptr));
+  TEST_ASSERT_FALSE(isValidDeviceId("VAL 001"));
+  TEST_ASSERT_FALSE(isValidDeviceId("VAL:001"));
+}
+
+static void test_flag_bits_do_not_overlap() {
+  const uint8_t all[] = {FLAG_LID_OPENED, FLAG_SHOCK, FLAG_SEAL_BROKEN, FLAG_UNLOCK_GRANTED,
+                         FLAG_UNLOCK_REJECTED};
+  uint8_t seen = 0;
+  for (uint8_t f : all) {
+    TEST_ASSERT_EQUAL_UINT8(0, seen & f);
+    seen |= f;
+  }
+  TEST_ASSERT_EQUAL_UINT8(0x1f, seen);
+}
+
 static void test_ingest_json_never_overflows_the_buffer() {
   SignedReading item = makeSigned(kVector, 0x22);
   const size_t need = ingestJsonSize(7, 1);
@@ -242,6 +264,8 @@ int main(int, char**) {
   RUN_TEST(test_hex_needs_room_for_prefix_and_nul);
   RUN_TEST(test_ingest_json_matches_the_gateway_format);
   RUN_TEST(test_ingest_json_rejects_bad_input);
+  RUN_TEST(test_device_id_validation);
+  RUN_TEST(test_flag_bits_do_not_overlap);
   RUN_TEST(test_ingest_json_never_overflows_the_buffer);
   RUN_TEST(test_ingest_json_max_batch_size);
   RUN_TEST(test_queue_keeps_order_and_pops);

@@ -19,6 +19,14 @@ constexpr size_t DIGEST_SIZE = 32;      // SHA-256
 constexpr uint8_t FLAG_LID_OPENED = 0x01;
 constexpr uint8_t FLAG_SHOCK = 0x02;
 constexpr uint8_t FLAG_SEAL_BROKEN = 0x04;
+// PROPUESTOS por la apertura autenticada (docs/unlock-protocol.md). Todavía no figuran en
+// READING_FORMAT.md de Pharmatrace: el gateway los guarda firmados pero no los interpreta.
+constexpr uint8_t FLAG_UNLOCK_GRANTED = 0x08;   // la caja aceptó un token y abrió la cerradura
+constexpr uint8_t FLAG_UNLOCK_REJECTED = 0x10;  // la caja recibió un token inválido (posible ataque)
+
+// El deviceId viaja en el JSON de ingesta y en el QR: letras, números, guion y guion bajo.
+constexpr size_t MAX_DEVICE_ID_LEN = 24;
+bool isValidDeviceId(const char* id);
 
 struct Reading {
   uint32_t ts;        // segundos Unix (GPS o RTC sincronizado)

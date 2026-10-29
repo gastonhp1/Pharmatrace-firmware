@@ -78,6 +78,18 @@ bool longitudeToE5(double degrees, int32_t& out) {
   return true;
 }
 
+bool isValidDeviceId(const char* id) {
+  if (id == nullptr) return false;
+  size_t n = 0;
+  for (; id[n] != '\0'; n++) {
+    const char c = id[n];
+    const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                    c == '-' || c == '_';
+    if (!ok || n >= MAX_DEVICE_ID_LEN) return false;
+  }
+  return n > 0;
+}
+
 size_t toHex(const uint8_t* data, size_t len, char* out, size_t cap) {
   if (out == nullptr || cap < 2 + 2 * len + 1) return 0;
   static const char digits[] = "0123456789abcdef";

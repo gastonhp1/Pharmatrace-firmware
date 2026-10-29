@@ -29,21 +29,21 @@
 <text x="452" y="194" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">RST</text>
 <circle cx="520" cy="190" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="220" x2="520" y2="220" stroke="#999" stroke-width="2"/>
-<rect x="392" y="208" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="224" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO4</text>
-<circle cx="520" cy="220" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="208" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="224" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO4 · EPD BUSY</text>
+<circle cx="520" cy="220" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="250" x2="520" y2="250" stroke="#999" stroke-width="2"/>
 <rect x="392" y="238" width="120" height="24" rx="5" fill="#ffffff" stroke="#e07b00" stroke-width="3"/>
 <text x="452" y="254" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO5 · INT1</text>
 <circle cx="520" cy="250" r="5" fill="#e07b00" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="280" x2="520" y2="280" stroke="#999" stroke-width="2"/>
-<rect x="392" y="268" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="284" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO6</text>
-<circle cx="520" cy="280" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="268" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="284" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO6 · LOCK</text>
+<circle cx="520" cy="280" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="310" x2="520" y2="310" stroke="#999" stroke-width="2"/>
-<rect x="392" y="298" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="314" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO7</text>
-<circle cx="520" cy="310" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="298" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="314" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO7 · LOCK SW</text>
+<circle cx="520" cy="310" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="340" x2="520" y2="340" stroke="#999" stroke-width="2"/>
 <rect x="392" y="328" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
 <text x="452" y="344" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO15</text>
@@ -77,25 +77,25 @@
 <text x="452" y="554" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO9 · SCL</text>
 <circle cx="520" cy="550" r="5" fill="#2a9d3f" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="580" x2="520" y2="580" stroke="#999" stroke-width="2"/>
-<rect x="392" y="568" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="584" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO10</text>
-<circle cx="520" cy="580" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="568" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="584" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO10 · EPD CS</text>
+<circle cx="520" cy="580" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="610" x2="520" y2="610" stroke="#999" stroke-width="2"/>
-<rect x="392" y="598" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="614" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO11</text>
-<circle cx="520" cy="610" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="598" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="614" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO11 · EPD MOSI</text>
+<circle cx="520" cy="610" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="640" x2="520" y2="640" stroke="#999" stroke-width="2"/>
-<rect x="392" y="628" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="644" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO12</text>
-<circle cx="520" cy="640" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="628" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="644" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO12 · EPD SCK</text>
+<circle cx="520" cy="640" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="670" x2="520" y2="670" stroke="#999" stroke-width="2"/>
-<rect x="392" y="658" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="674" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO13</text>
-<circle cx="520" cy="670" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="658" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="674" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO13 · EPD DC</text>
+<circle cx="520" cy="670" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="700" x2="520" y2="700" stroke="#999" stroke-width="2"/>
-<rect x="392" y="688" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="452" y="704" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO14</text>
-<circle cx="520" cy="700" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="392" y="688" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="452" y="704" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO14 · EPD RST</text>
+<circle cx="520" cy="700" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="512" y1="730" x2="520" y2="730" stroke="#999" stroke-width="2"/>
 <rect x="392" y="718" width="120" height="24" rx="5" fill="#ffffff" stroke="#b45f06" stroke-width="3"/>
 <text x="452" y="734" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">5V</text>
@@ -121,9 +121,9 @@
 <text x="792" y="224" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO1 · REED</text>
 <circle cx="720" cy="220" r="5" fill="#555555" stroke="#0b1220" stroke-width="1"/>
 <line x1="720" y1="250" x2="732" y2="250" stroke="#999" stroke-width="2"/>
-<rect x="732" y="238" width="120" height="24" rx="5" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
-<text x="792" y="254" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="middle">GPIO2</text>
-<circle cx="720" cy="250" r="5" fill="#d4af37" stroke="#0b1220" stroke-width="1"/>
+<rect x="732" y="238" width="120" height="24" rx="5" fill="#ffffff" stroke="#0277bd" stroke-width="3"/>
+<text x="792" y="254" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO2 · BUTTON</text>
+<circle cx="720" cy="250" r="5" fill="#0277bd" stroke="#0b1220" stroke-width="1"/>
 <line x1="720" y1="280" x2="732" y2="280" stroke="#999" stroke-width="2"/>
 <rect x="732" y="268" width="120" height="24" rx="5" fill="#ffffff" stroke="#8d5524" stroke-width="3"/>
 <text x="792" y="284" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO42 · GPS RX</text>
@@ -249,7 +249,7 @@
 <circle cx="250" cy="550" r="3.2" fill="#1a1a1a"/>
 <rect x="30" y="566" width="220" height="100" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
 <text x="40" y="582" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">LIS3DH · 0x18</text>
-<text x="40" y="595" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">shock / tilt · SA0 → GND</text>
+<text x="40" y="595" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">shocks / tilt · SA0 → GND</text>
 <text x="242" y="613.5" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="end">VCC</text>
 <circle cx="250" cy="610" r="3.2" fill="#1a1a1a"/>
 <text x="242" y="625.5" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="end">GND</text>
@@ -262,7 +262,7 @@
 <circle cx="250" cy="658" r="3.2" fill="#1a1a1a"/>
 <rect x="30" y="674" width="220" height="88" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
 <text x="40" y="690" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">MAX17048 · 0x36</text>
-<text x="40" y="703" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">battery level (powered from the battery)</text>
+<text x="40" y="703" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">battery level (wired to the battery)</text>
 <text x="242" y="721.5" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="end">CELL+</text>
 <circle cx="250" cy="718" r="3.2" fill="#1a1a1a"/>
 <circle cx="190" cy="718" r="3.2" fill="#b45f06"/>
@@ -367,7 +367,7 @@
 <text x="910" y="314" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">UART1 · also provides the time for ts</text>
 <circle cx="900" cy="329" r="3.2" fill="#1a1a1a"/>
 <text x="908" y="332.5" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="start">VCC</text>
-<text x="970" y="332.5" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">← 3V3 (J1 3V3 pin)</text>
+<text x="970" y="332.5" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">← 3V3 (3V3 pin on J1)</text>
 <circle cx="900" cy="344" r="3.2" fill="#1a1a1a"/>
 <text x="908" y="347.5" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="start">GND</text>
 <text x="970" y="347.5" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">← GND</text>
@@ -381,10 +381,10 @@
 <path d="M852 310 L872 310 L872 374 L900 374" fill="none" stroke="#c2185b" stroke-width="2.5" stroke-linejoin="round"/>
 <rect x="900" y="420" width="280" height="138" rx="8" fill="#f4f4f4" stroke="#555" stroke-width="2"/>
 <text x="910" y="436" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">LTE modem (A7670 / SIM7080G)</text>
-<text x="910" y="449" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">UART2 · real uplink to the gateway</text>
+<text x="910" y="449" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">UART2 · real transport to the gateway</text>
 <circle cx="900" cy="464" r="3.2" fill="#1a1a1a"/>
 <text x="908" y="467.5" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="start">VBAT</text>
-<text x="970" y="467.5" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">← battery directly, NOT the 3V3</text>
+<text x="970" y="467.5" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">← straight from battery, NOT 3V3</text>
 <circle cx="900" cy="479" r="3.2" fill="#1a1a1a"/>
 <text x="908" y="482.5" font-size="10" font-weight="bold" fill="#1a1a1a" text-anchor="start">GND</text>
 <text x="970" y="482.5" font-size="9.5" font-weight="normal" fill="#555" text-anchor="start">← GND</text>
@@ -401,13 +401,15 @@
 <path d="M852 370 L858 370 L858 509 L900 509" fill="none" stroke="#00897b" stroke-width="2.5" stroke-linejoin="round"/>
 <path d="M852 610 L886 610 L886 524 L900 524" fill="none" stroke="#ad8b00" stroke-width="2.5" stroke-linejoin="round"/>
 <circle cx="960" cy="464" r="0" fill="none"/>
-<text x="900" y="600" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">Power for the modules on the right</text>
-<text x="900" y="620" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">• GPS: spare 3V3 pin on J1 (there are two).</text>
+<text x="900" y="600" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">Powering the modules on the right</text>
+<text x="900" y="780" font-size="10.5" font-weight="bold" fill="#0277bd" text-anchor="start">Teal pins (display, button and</text>
+<text x="900" y="796" font-size="10.5" font-weight="bold" fill="#0277bd" text-anchor="start">lock): wiring in wiring-unlock.</text>
+<text x="900" y="620" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">• GPS: free 3V3 pin on J1 (there are two).</text>
 <text x="900" y="636" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">• GND: G pins on J3 (top and bottom).</text>
-<text x="900" y="652" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">• Modem: VBAT straight from the battery,</text>
-<text x="900" y="668" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  with its own capacitor. Peaks reach</text>
-<text x="900" y="684" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  ~2 A (depending on the module) and the</text>
-<text x="900" y="700" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  DevKit 3V3 rail cannot supply that.</text>
+<text x="900" y="652" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">• Modem: VBAT straight from the battery, with</text>
+<text x="900" y="668" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  capacitor. Peaks reach</text>
+<text x="900" y="684" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  ~2 A (depending on the module); the</text>
+<text x="900" y="700" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  DevKit can't take them.</text>
 <text x="900" y="716" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">• Modem logic levels: check whether</text>
 <text x="900" y="732" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  your breakout uses 1.8 V or 3.3 V before</text>
 <text x="900" y="748" font-size="10.5" font-weight="normal" fill="#333" text-anchor="start">  connecting TX/RX.</text>
@@ -418,9 +420,9 @@
 <rect x="230" y="869" width="22" height="14" rx="3" fill="#ffffff" stroke="#1d6fd8" stroke-width="2"/>
 <text x="260" y="880" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Used by the project</text>
 <rect x="414" y="869" width="22" height="14" rx="3" fill="#fff6bf" stroke="#b59b00" stroke-width="2"/>
-<text x="444" y="880" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Strapping (do not force at boot)</text>
+<text x="444" y="880" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Strapping (don't drive at boot)</text>
 <rect x="672" y="869" width="22" height="14" rx="3" fill="#e9d5ff" stroke="#7e3fbf" stroke-width="2"/>
-<text x="702" y="880" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Octal PSRAM (N8R8): do not use</text>
+<text x="702" y="880" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Octal PSRAM (N8R8): don't use</text>
 <rect x="893" y="869" width="22" height="14" rx="3" fill="#eeeeee" stroke="#777777" stroke-width="2"/>
 <text x="923" y="880" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Serial/USB</text>
 <rect x="30" y="898" width="22" height="4" fill="#1d6fd8"/>
@@ -441,5 +443,7 @@
 <text x="949" y="906" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">PWRKEY</text>
 <rect x="1008" y="898" width="22" height="4" fill="#b45f06"/>
 <text x="1038" y="906" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">battery / 5 V</text>
-<text x="30" y="934" font-size="10.5" font-weight="normal" fill="#555" text-anchor="start">Physical order per Espressif's DevKitC-1 guide (J1/J3, USB at the bottom). Proposal not validated on hardware: check against your board's silkscreen.</text>
+<rect x="1140" y="898" width="22" height="4" fill="#0277bd"/>
+<text x="1170" y="906" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">unlock</text>
+<text x="30" y="934" font-size="10.5" font-weight="normal" fill="#555" text-anchor="start">Physical order per Espressif's DevKitC-1 guide (J1/J3, USB at the bottom). Proposal, not validated on hardware: check against your board's silkscreen.</text>
 </svg>

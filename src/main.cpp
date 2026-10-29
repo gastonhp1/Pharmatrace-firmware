@@ -11,17 +11,24 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <Wire.h>
-#include <mbedtls/sha256.h>
+
+#include <esp_random.h>
 
 #include <atomic>
 
+#include "ble_unlock.h"
 #include "config.h"
+#include "display.h"
+#include "lock.h"
 #include "pharma_ingest.h"
 #include "pharma_queue.h"
 #include "pharma_reading.h"
+#include "pharma_unlock.h"
 #include "secrets.h"
 #include "signer.h"
+#include "unlock_key.h"
 #include "uplink.h"
+#include "verifier_mbedtls.h"
 
 using namespace pharma;
 
@@ -29,6 +36,17 @@ static ReadingQueue<QUEUE_CAPACITY> queue;
 static Preferences prefs;
 static Atecc608Signer signer;
 static UplinkWifi uplink;  // banco de pruebas; el transporte real es el módem (ver uplink.h)
+
+static SerialDisplay display;  // TODO(hw): reemplazar por la e-paper
+static Lock lock;
+static MbedtlsVerifier unlockVerifier;
+static UnlockSession unlockSession(DEVICE_ID, sha256Mbedtls, MbedtlsVerifier::verifyThunk,
+                                   &unlockVerifier, UNLOCK_CHALLENGE_TTL_MS, UNLOCK_MAX_ATTEMPTS);
+static bool unlockReady = false;  // clave de apertura válida cargada
+
+// El botón solo levanta una bandera; el trabajo se hace en loop().
+static volatile bool buttonPressed = false;
+static void IRAM_ATTR onButtonInterrupt() { buttonPressed = true; }
 
 // Eventos latcheados por interrupción entre dos muestras: se reportan en la siguiente lectura.
 static std::atomic<uint8_t> pendingFlags{0};
@@ -76,8 +94,7 @@ static uint32_t reserveSeq() {
 }
 
 static bool sha256(const uint8_t* data, size_t len, uint8_t out[DIGEST_SIZE]) {
-  mbedtls_sha256(data, len, out, 0);  // 2.x devuelve void y 3.x int: no se usa el retorno
-  return true;
+  return sha256Mbedtls(data, len, out);
 }
 
 static void skip(const char* why) { Serial.printf("[sample] %s, se saltea\n", why); }
@@ -156,6 +173,74 @@ static void uploadPending() {
   }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Apertura autenticada (docs/unlock-protocol.md)
+// ---------------------------------------------------------------------------------------------
+
+static bool challengeShown = false;
+
+static void endChallenge() {
+  unlockSession.end();
+  ble_unlock::stopAdvertising();
+  challengeShown = false;
+}
+
+// Botón -> nonce nuevo -> QR en pantalla -> BLE visible.
+static void startChallenge(uint32_t nowMs) {
+  if (!unlockReady) return display.showMessage("Apertura no disponible");
+  // El nonce sale de esp_fill_random(): es aleatorio de verdad solo con BLE/WiFi encendidos
+  // (BLE ya está inicializado en setup()). TODO(hw): usar el TRNG del ATECC608B.
+  uint8_t nonce[NONCE_SIZE];
+  esp_fill_random(nonce, sizeof nonce);
+  char qr[QR_PAYLOAD_MAX];
+  if (!unlockSession.begin(nonce, nowMs) || buildQrPayload(DEVICE_ID, nonce, qr, sizeof qr) == 0) {
+    return display.showMessage("Error al generar el QR");
+  }
+  display.showQr(qr);
+  ble_unlock::startAdvertising();
+  challengeShown = true;
+}
+
+static void serviceUnlock(uint32_t nowMs) {
+  lock.update(nowMs);
+
+  if (buttonPressed) {
+    buttonPressed = false;
+    if (!challengeShown) startChallenge(nowMs);  // con un QR vigente, otro toque no hace nada
+  }
+
+  // El QR venció sin que nadie lo usara.
+  if (challengeShown && !unlockSession.active(nowMs)) {
+    endChallenge();
+    display.clear();
+  }
+
+  uint8_t token[ble_unlock::MAX_WRITE];
+  size_t len = 0;
+  if (!ble_unlock::takeWrite(token, sizeof token, len)) return;
+
+  uint32_t nowUnix = 0;
+  const bool timeValid = readUnixTime(nowUnix);
+  const UnlockResult r = unlockSession.handle(token, len, nowMs, timeValid, nowUnix);
+  ble_unlock::notifyResult(r);
+  Serial.printf("[unlock] resultado=%u\n", (unsigned)r);
+
+  // Cada intento deja huella firmada en la próxima lectura (el ledger la ancla sin interpretarla).
+  if (r == UnlockResult::Ok) {
+    pendingFlags.fetch_or(FLAG_UNLOCK_GRANTED);
+    lock.open(nowMs);
+    display.showMessage("Abierta");
+    endChallenge();
+    lastSampleMs = nowMs - SAMPLE_INTERVAL_S * 1000UL;  // adelanta la muestra: que quede registrado ya
+  } else {
+    pendingFlags.fetch_or(FLAG_UNLOCK_REJECTED);
+    if (r == UnlockResult::LockedOut || r == UnlockResult::NoChallenge) {
+      endChallenge();
+      display.showMessage("Rechazada");
+    }
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
@@ -168,6 +253,14 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN_ACCEL_INT), onShockInterrupt, RISING);
 
   uplink.begin();
+
+  lock.begin();
+  display.begin();
+  pinMode(PIN_UNLOCK_BUTTON, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_UNLOCK_BUTTON), onButtonInterrupt, FALLING);
+  unlockReady = unlockVerifier.begin(UNLOCK_PUBKEY);
+  if (!unlockReady) Serial.println("[boot] clave de apertura inválida (include/unlock_key.h): la caja no se puede abrir");
+  ble_unlock::begin(DEVICE_ID);
 
   if (!signer.begin()) {
     Serial.println("[boot] ATECC608B no disponible: no se puede firmar, no se emitirá nada");
@@ -183,6 +276,8 @@ void setup() {
 
 void loop() {
   const uint32_t nowMs = millis();  // la resta sin signo tolera el desborde de millis()
+
+  serviceUnlock(nowMs);
 
   if (nowMs - lastSampleMs >= SAMPLE_INTERVAL_S * 1000UL) {
     lastSampleMs = nowMs;

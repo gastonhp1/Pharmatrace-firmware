@@ -15,8 +15,10 @@ Esqueleto. Esto es lo que está verificado y lo que no:
 
 | | Estado |
 |---|---|
-| Formato de lectura v1 (21 bytes), conversión de unidades, armado del JSON de ingesta, cola de lecturas | **Probado en la PC**: 15 tests, el vector oficial de `READING_FORMAT.md`, 5000 lecturas aleatorias contra una implementación independiente en Python y el código real de `ingest.js` del gateway aceptando el JSON que arma este firmware |
+| Formato de lectura v1 (21 bytes), conversión de unidades, armado del JSON de ingesta, cola de lecturas | **Probado en la PC**: 17 tests, el vector oficial de `READING_FORMAT.md`, 5000 lecturas aleatorias contra una implementación independiente en Python y el código real de `ingest.js` del gateway aceptando el JSON que arma este firmware |
 | `src/main.cpp`, `uplink_wifi.cpp` (Arduino/ESP32) | Escrito, **no compilado ni probado en hardware** |
+| Apertura autenticada, opción A (token por BLE): validación del token, nonce/QR, bloqueo por intentos | **Probado en la PC**: 14 tests, más corridas de punta a punta donde Python firma un token y el código C++ lo verifica con el mismo código mbedtls P-256 que usa el ESP32 (válido, otra clave, otra caja, otro nonce, token alterado) |
+| Servicio BLE, e-paper, cerradura y botón (`ble_unlock`, `lock`, `display`, `main.cpp`) | Escrito, **solo revisado de sintaxis contra stubs; no compilado con las librerías reales ni probado en hardware**. La e-paper es por ahora una salida por serie |
 | Drivers de sensores, módem celular | TODO (`main.cpp` los marca) |
 | Firma con el ATECC608B | TODO: `signer_atecc608.cpp` falla a propósito en vez de devolver una firma falsa |
 | Pines y cableado | Propuesta sin validar en hardware |
@@ -41,11 +43,15 @@ El firmware **no juzga** si una temperatura está en rango: la política (2–8 
 
 ## Hardware
 
-Según [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md) de Pharmatrace: **ESP32-S3** (no la ESP32 clásica), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, módem LTE (A7670 o SIM7080G) y reed switch de tapa.
+Según [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md) de Pharmatrace: **ESP32-S3** (no la ESP32 clásica), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, módem LTE (A7670 o SIM7080G) reed switch de tapa y, para la apertura autenticada, una pantalla e-paper SPI, un botón y una cerradura de solenoide (ver [`docs/unlock-protocol.md`](docs/unlock-protocol.md)).
 
 ## Cableado
 
 ![Diagrama de cableado](docs/wiring.es.svg)
+
+Pantalla, botón y cerradura (pines en azul petróleo) en detalle:
+
+![Cableado de la apertura](docs/wiring-unlock.es.svg)
 
 Pines en [`include/config.h`](include/config.h), en la numeración del ESP32-S3-DevKitC-1:
 
@@ -57,6 +63,9 @@ Pines en [`include/config.h`](include/config.h), en la numeración del ESP32-S3-
 | UART1 GPS | 42 (RX) / 41 (TX) | TX / RX del GPS |
 | UART2 módem | 40 (RX) / 39 (TX) | TX / RX del módem |
 | PWRKEY del módem | 47 | Módem |
+| SPI de la e-paper (SCK / MOSI / CS / DC / RST / BUSY) | 12 / 11 / 10 / 13 / 14 / 4 | Pantalla que muestra el QR de apertura |
+| Botón «abrir» | 2 | Botón a GND, con `INPUT_PULLUP` |
+| Cerradura (comando / sensor de pestillo) | 6 / 7 | Compuerta del MOSFET del solenoide / microswitch del pestillo |
 
 Cosas a tener en cuenta:
 
@@ -77,10 +86,17 @@ lib/pharma_proto/              Protocolo sin Arduino (se prueba en la PC)
   pharma_reading.*               Formato de 21 bytes, conversiones, hex
   pharma_ingest.*                Cuerpo de POST /api/iot/readings
   pharma_queue.h                 Cola de lecturas firmadas pendientes
+  pharma_unlock.*                Token de apertura, texto del QR, sesión de desafío e intentos
 src/main.cpp                   Ciclo: sensar → firmar → encolar → subir
 src/signer*.{h,cpp}            Interfaz de firma + esqueleto del ATECC608B
+src/verifier_mbedtls.*         Verificación P-256 del token de apertura
+src/ble_unlock.*, lock.*, display*   Servicio BLE, cerradura de solenoide, pantalla (stub por serie)
+tools/unlock_token.py          Genera una clave de prueba y firma tokens de apertura
 src/uplink*.{h,cpp}            Interfaz de transporte + WiFi para pruebas de banco
 test/test_proto/               Tests del protocolo, incluido el vector oficial
+test/test_unlock/              Tests del token y la sesión de apertura
+tools/e2e_unlock.cpp           Programa de la PC: verifica un token firmado con tools/unlock_token.py
+docs/unlock-protocol.md        Protocolo de apertura autenticada
 docs/architecture.md           Cómo encaja con el gateway y Fabric
 docs/wiring.{es,en}.svg        Diagrama de cableado (español e inglés)
 ```
@@ -92,6 +108,7 @@ pip install platformio
 pio test -e native              # protocolo, en la PC (sin hardware)
 
 cp include/secrets.example.h include/secrets.h    # completar DEVICE_ID, GATEWAY_URL, WiFi
+cp include/unlock_key.example.h include/unlock_key.h   # clave PÚBLICA de apertura del backend
 pio run                         # compilar para ESP32-S3
 pio run -t upload && pio device monitor
 ```
@@ -107,7 +124,7 @@ lecturas firmadas con el mismo formato.
 - **Persistir la cola en flash** (LittleFS): hoy está en RAM y se pierde al reiniciar. Si se llena, descarta la más vieja y queda un hueco de `seq`.
 - **Deep sleep** con despertar por reed y acelerómetro, para la autonomía.
 - **Dos formas de que el formato v1 se quede corto** (hay que cambiarlo en los tres repos a la vez):
-  - Tiene un solo campo de temperatura, pero el BOM trae dos TMP117 para detectar fallas o manipulación. Falta decidir qué se reporta y cómo se marca el desacuerdo (los bits 3–7 de `flags` están libres).
+  - Tiene un solo campo de temperatura, pero el BOM trae dos TMP117 para detectar fallas o manipulación. Falta decidir qué se reporta y cómo se marca el desacuerdo (los bits 5–7 de `flags` están libres; 0x08 y 0x10 se proponen para eventos de apertura).
   - No hay un bit de "fix de GPS válido": sin fix se reutiliza la última posición conocida.
 - **Hora:** sin hora válida (GPS o RTC sincronizado) no se emite nada.
 
