@@ -1,7 +1,8 @@
 # Apertura autenticada de la PharmaBox (opción A: token por BLE)
 
-Estado: **diseño + firmware de la caja + herramienta de prueba**. El backend, el chaincode y la app de
-Pharmatrace **no están modificados**: lo que se pide de ellos está en [Qué falta en Pharmatrace](#qué-falta-en-pharmatrace).
+Estado: **diseño + firmware de la caja + herramienta de prueba**. El backend y la app Android ya existen en
+Pharmatrace (ver [Estado del lado de Pharmatrace](#estado-del-lado-de-pharmatrace)); el chaincode todavía no
+interpreta los eventos de apertura.
 
 ## Idea en una línea
 
@@ -29,19 +30,23 @@ Ventajas: la caja no guarda claves de usuarios ni necesita internet para abrir (
 backend); las reglas de quién puede abrir viven en un solo lugar. Costo: **el celular necesita internet** y hay
 que desarrollar una app (ver riesgos).
 
-## Quién puede abrir (regla propuesta)
+## Quién puede abrir
 
-Pharmatrace ya modela quién custodia cada lote. La regla propuesta para el backend:
+La regla vive en el backend de Pharmatrace (`backend/box/policy.js`, documentada en `iot/docs/BOX_UNLOCK.md`);
+la caja solo comprueba la firma:
 
-| Estado del cargamento | Puede abrir |
+| Estado | Puede abrir |
 |---|---|
+| Caja sin cargamento activo | un usuario de la organización que la registró |
 | `OPEN` | un usuario de la organización dueña |
-| `IN_TRANSIT` | un usuario de la organización a la que se despacha (`PendingTo`); el transportista **no** |
-| `DELIVERED` / `DISSOLVED` | solo el regulador (`RegMSP`) |
-| cualquiera | el regulador (`RegMSP`), siempre, con auditoría |
+| `IN_TRANSIT` | un usuario de la organización destinataria (`PendingTo`); ni el remitente ni el transportista |
+| `DELIVERED` | un usuario del dueño actual, que tras `ReceiveCargo` es quien recibió (descarga) |
+| `DISSOLVED` | un usuario del dueño |
+| cualquiera | el regulador (`RegMSP`), siempre |
 
-Es una propuesta: confirmarla con el flujo real de Pharmatrace antes de implementarla. Toda decisión
-(otorgada o denegada) se audita en el backend.
+Toda decisión, otorgada o denegada, se audita en el backend. (El primer borrador de este documento dejaba
+`DELIVERED` y `DISSOLVED` solo al regulador; se cambió porque quien recibe no podría descargar la caja mientras el
+monitoreo siga abierto.)
 
 ## QR
 
@@ -112,16 +117,19 @@ contra el código del gateway** (`backend/iot/reading.js` y `window.js`): no val
 interpreta los tres primeros, así que 0x08/0x10 se aceptan y se ignoran. Hoy no generan eventos en el
 chaincode. Una tapa abierta (`LID_OPENED`) sin un `UNLOCK_GRANTED` cerca sería una **apertura forzada**.
 
-## Qué falta en Pharmatrace
+## Estado del lado de Pharmatrace
 
-- `READING_FORMAT.md`: documentar los bits 0x08 y 0x10.
-- Backend: `POST /api/box/unlock` (sesión de usuario, `deviceId`, `nonce`), consulta del cargamento en el
-  ledger, aplicar la regla de arriba, firmar el token, auditar. Gestión de la clave de apertura (ideal: HSM/KMS).
-- Chaincode (opcional): eventos `UNLOCK_GRANTED` / `UNLOCK_DENIED` y correlación con `LID_OPENED`.
-- App: escaneo de QR + BLE. **iOS no tiene Web Bluetooth**, así que una web app solo sirve en Android; para iOS
-  hace falta una app nativa.
-- Identidad: hoy el backend actúa de forma custodial con una identidad Fabric; para que `actor` signifique algo
-  hacen falta usuarios propios por organización.
+Ya implementado y mergeado en Pharmatrace (PR #17): sesiones de usuario por organización, `POST /api/box/unlock`,
+la política de arriba, auditoría, firma del token y `READING_FORMAT.md` con los bits 0x08/0x10. La app Android
+está en PharmaTrace-mobile. Un token emitido por el backend real (`box/token.js`) se verificó contra el
+verificador mbedtls de este repo (`tools/e2e_unlock.cpp`); falta probar con una caja real.
+
+Sigue pendiente:
+
+- Chaincode: eventos `UNLOCK_GRANTED` / `UNLOCK_DENIED` y detección de apertura forzada (`LID_OPENED` sin
+  `UNLOCK_GRANTED`). Hoy los flags viajan anclados pero nadie los interpreta.
+- Clave de apertura en KMS/HSM.
+- iOS: Web Bluetooth no existe; haría falta una app nativa.
 
 ## Riesgos conocidos
 
