@@ -17,7 +17,7 @@ Skeleton. What is verified and what is not:
 |---|---|
 | Reading format v1 (21 bytes), unit conversion, ingest JSON builder, reading queue | **Tested on the host**: 17 tests, the official test vector from `READING_FORMAT.md`, 5000 random readings against an independent Python implementation, and the gateway's real `ingest.js` accepting the JSON this firmware builds |
 | `src/main.cpp`, `uplink_wifi.cpp` (Arduino/ESP32) | Written, **not compiled or tested on hardware** |
-| Authenticated unlock, option A (token over BLE): token parsing and validation, nonce/QR, attempt lockout | **Tested on the host**: 14 tests, plus end-to-end runs where Python signs a token and the C++ code verifies it with the same mbedtls P-256 code the ESP32 uses (valid, wrong key, wrong box, wrong nonce, tampered token) |
+| Authenticated unlock, option A (token over BLE): token parsing and validation, nonce/QR, attempt lockout | **Tested on the host**: 14 tests, plus end-to-end runs where Python signs a token and the C++ code verifies it with the same mbedtls P-256 code the ESP32 uses (valid, wrong key, wrong box, wrong nonce, tampered token), including a token issued by the real Pharmatrace backend (`box/token.js`). Not tried against a real box |
 | BLE service, e-paper, lock driver, button (`ble_unlock`, `lock`, `display`, `main.cpp`) | Written, **only syntax-checked against stubs; not compiled with the real libraries or tested on hardware**. The e-paper is a serial stub for now |
 | Sensor drivers, cellular modem | TODO (`main.cpp` marks them) |
 | Signing with the ATECC608B | TODO: `signer_atecc608.cpp` fails on purpose instead of returning a fake signature |
@@ -43,7 +43,7 @@ The firmware **does not judge** whether a temperature is in range: the policy (2
 
 ## Hardware
 
-Per Pharmatrace's [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md): **ESP32-S3** (not the classic ESP32), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, LTE modem (A7670 or SIM7080G) a lid reed switch, and, for the authenticated unlock, an SPI e-paper display, a button and a solenoid lock (see [`docs/unlock-protocol.md`](docs/unlock-protocol.md), in Spanish).
+Per Pharmatrace's [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md): **ESP32-S3** (not the classic ESP32), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, LTE modem (A7670 or SIM7080G), a lid reed switch and, for the authenticated unlock, an SPI e-paper display, a button and a solenoid lock (see [`docs/unlock-protocol.md`](docs/unlock-protocol.md), in Spanish).
 
 ## Wiring
 
@@ -108,7 +108,7 @@ pip install platformio
 pio test -e native              # protocol, on the host (no hardware)
 
 cp include/secrets.example.h include/secrets.h    # fill in DEVICE_ID, GATEWAY_URL, WiFi
-cp include/unlock_key.example.h include/unlock_key.h   # the backend's unlock PUBLIC key
+cp include/unlock_key.example.h include/unlock_key.h   # the backend's unlock PUBLIC key (`node backend/scripts/unlock-key.js generate` in Pharmatrace prints it)
 pio run                         # build for ESP32-S3
 pio run -t upload && pio device monitor
 ```
@@ -124,8 +124,9 @@ readings in the same format.
 - **Persist the queue to flash** (LittleFS): it lives in RAM today and is lost on reboot. When it fills up it drops the oldest reading, leaving a `seq` gap.
 - **Deep sleep** with wake-up on the reed switch and the accelerometer, for battery life.
 - **Two ways format v1 falls short** (it has to change in all three repos at once):
-  - It has a single temperature field, but the BOM includes two TMP117s to detect failures or tampering. We still need to decide what to report and how to flag a disagreement (bits 5–7 of `flags` are free; 0x08 and 0x10 are proposed for unlock events).
+  - It has a single temperature field, but the BOM includes two TMP117s to detect failures or tampering. We still need to decide what to report and how to flag a disagreement (bits 5–7 of `flags` are free; 0x08 and 0x10 are used for unlock events, documented in `READING_FORMAT.md`).
   - There is no "valid GPS fix" bit: without a fix the last known position is reused.
+- **Unlock, still missing:** compile and test BLE/e-paper/lock on hardware (the code is only syntax-checked); real e-paper driver and QR rendering; nonce from the ATECC608B's TRNG instead of `esp_fill_random()`; chaincode events for granted/denied unlocks and forced-open detection (Pharmatrace side). The backend and the Android app already exist in Pharmatrace.
 - **Time:** without a valid time (GPS or a synced RTC) nothing is emitted.
 
 ## Relationship with Pharmatrace

@@ -17,7 +17,7 @@ Esqueleto. Esto es lo que está verificado y lo que no:
 |---|---|
 | Formato de lectura v1 (21 bytes), conversión de unidades, armado del JSON de ingesta, cola de lecturas | **Probado en la PC**: 17 tests, el vector oficial de `READING_FORMAT.md`, 5000 lecturas aleatorias contra una implementación independiente en Python y el código real de `ingest.js` del gateway aceptando el JSON que arma este firmware |
 | `src/main.cpp`, `uplink_wifi.cpp` (Arduino/ESP32) | Escrito, **no compilado ni probado en hardware** |
-| Apertura autenticada, opción A (token por BLE): validación del token, nonce/QR, bloqueo por intentos | **Probado en la PC**: 14 tests, más corridas de punta a punta donde Python firma un token y el código C++ lo verifica con el mismo código mbedtls P-256 que usa el ESP32 (válido, otra clave, otra caja, otro nonce, token alterado) |
+| Apertura autenticada, opción A (token por BLE): validación del token, nonce/QR, bloqueo por intentos | **Probado en la PC**: 14 tests, más corridas de punta a punta donde Python firma un token y el código C++ lo verifica con el mismo código mbedtls P-256 que usa el ESP32 (válido, otra clave, otra caja, otro nonce, token alterado), incluido un token emitido por el backend real de Pharmatrace (`box/token.js`). No probado con una caja real |
 | Servicio BLE, e-paper, cerradura y botón (`ble_unlock`, `lock`, `display`, `main.cpp`) | Escrito, **solo revisado de sintaxis contra stubs; no compilado con las librerías reales ni probado en hardware**. La e-paper es por ahora una salida por serie |
 | Drivers de sensores, módem celular | TODO (`main.cpp` los marca) |
 | Firma con el ATECC608B | TODO: `signer_atecc608.cpp` falla a propósito en vez de devolver una firma falsa |
@@ -108,7 +108,7 @@ pip install platformio
 pio test -e native              # protocolo, en la PC (sin hardware)
 
 cp include/secrets.example.h include/secrets.h    # completar DEVICE_ID, GATEWAY_URL, WiFi
-cp include/unlock_key.example.h include/unlock_key.h   # clave PÚBLICA de apertura del backend
+cp include/unlock_key.example.h include/unlock_key.h   # clave PÚBLICA de apertura del backend (la imprime `node backend/scripts/unlock-key.js generate` en Pharmatrace)
 pio run                         # compilar para ESP32-S3
 pio run -t upload && pio device monitor
 ```
@@ -124,8 +124,9 @@ lecturas firmadas con el mismo formato.
 - **Persistir la cola en flash** (LittleFS): hoy está en RAM y se pierde al reiniciar. Si se llena, descarta la más vieja y queda un hueco de `seq`.
 - **Deep sleep** con despertar por reed y acelerómetro, para la autonomía.
 - **Dos formas de que el formato v1 se quede corto** (hay que cambiarlo en los tres repos a la vez):
-  - Tiene un solo campo de temperatura, pero el BOM trae dos TMP117 para detectar fallas o manipulación. Falta decidir qué se reporta y cómo se marca el desacuerdo (los bits 5–7 de `flags` están libres; 0x08 y 0x10 se proponen para eventos de apertura).
+  - Tiene un solo campo de temperatura, pero el BOM trae dos TMP117 para detectar fallas o manipulación. Falta decidir qué se reporta y cómo se marca el desacuerdo (los bits 5–7 de `flags` están libres; 0x08 y 0x10 se usan para eventos de apertura, documentados en `READING_FORMAT.md`).
   - No hay un bit de "fix de GPS válido": sin fix se reutiliza la última posición conocida.
+- **Apertura, falta:** compilar y probar BLE/e-paper/cerradura en hardware (hoy solo se revisó la sintaxis); driver real de la e-paper y dibujo del QR; nonce del TRNG del ATECC608B en vez de `esp_fill_random()`; eventos en el chaincode para aperturas otorgadas/denegadas y detección de apertura forzada (lado Pharmatrace). El backend y la app Android ya existen en Pharmatrace.
 - **Hora:** sin hora válida (GPS o RTC sincronizado) no se emite nada.
 
 ## Relación con Pharmatrace
