@@ -43,7 +43,7 @@ El firmware **no juzga** si una temperatura está en rango: la política (2–8 
 
 ## Hardware
 
-Según [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md) de Pharmatrace: **ESP32-S3** (no la ESP32 clásica), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, módem LTE (A7670 o SIM7080G) reed switch de tapa y, para la apertura autenticada, una pantalla e-paper SPI, un botón y una cerradura de solenoide (ver [`docs/unlock-protocol.md`](docs/unlock-protocol.md)).
+Según [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md) de Pharmatrace: **ESP32-S3** (no la ESP32 clásica), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, módem LTE (A7670 o SIM7080G), reed switch de tapa y, para la apertura autenticada, una pantalla e-paper SPI, un botón y una cerradura de solenoide (ver [`docs/unlock-protocol.md`](docs/unlock-protocol.md)).
 
 ## Cableado
 
