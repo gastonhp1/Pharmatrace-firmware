@@ -97,7 +97,11 @@ Cosas a tener en cuenta:
 - El orden de los pines sale de la guía de usuario de Espressif del DevKitC-1. Verificar contra la serigrafía de tu
   placa antes de soldar.
 
-Los diagramas se generan: `python3 tools/gen_wiring.py es docs/wiring.es.svg` y `tools/gen_box.py`.
+El lazo del precinto, en detalle:
+
+![El lazo del precinto](docs/seal-loop.es.svg)
+
+Los diagramas se generan con `tools/gen_wiring.py`, `tools/gen_box.py` y `tools/gen_seal_loop.py`.
 
 ## Cómo funciona
 

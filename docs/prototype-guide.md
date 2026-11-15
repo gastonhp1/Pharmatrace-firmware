@@ -44,7 +44,7 @@ En este orden, probando cada paso antes de seguir:
 3. **LIS3DH** en el bus I2C (SDA 8, SCL 9), INT1 al GPIO5. Dirección 0x18 (SA0 a GND).
 4. **Sonda.** SHT4x y VEML7700 al final del cable plano: 3V3, GND, SDA, SCL. Con 40–50 cm el I2C funciona; si
    aparecen errores de lectura, acortar el cable o bajar la velocidad del bus.
-5. **Lazo.** 3V3 → 10 kΩ → GPIO4. Del GPIO4 sale el cable que recorre el cinto de punta a punta y termina en la
+5. **Lazo** (dibujo en [`seal-loop.es.svg`](seal-loop.es.svg)). 3V3 → 10 kΩ → GPIO4. Del GPIO4 sale el cable que recorre el cinto de punta a punta y termina en la
    punta del plug de 3,5 mm, con una resistencia de 10 kΩ soldada **adentro del plug**, entre punta y masa. El
    jack va en el módulo, con su contacto de masa a GND: al enchufar, el cinto cierra el anillo alrededor de la
    caja y el circuito a la vez. Cortar el cinto corta el cable. Enchufado: ~1,65 V. Desenchufado: ~3,3 V.

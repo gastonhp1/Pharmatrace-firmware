@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 790" width="1100" height="790" font-family="Helvetica, Arial, sans-serif">
+<rect width="1100" height="790" fill="#ffffff"/>
+<text x="550" y="34" font-size="21" font-weight="bold" fill="#1a1a1a" text-anchor="middle">El lazo del precinto</text>
+<text x="40" y="76" font-size="14" font-weight="bold" fill="#1d4e89" text-anchor="start">1 · En la caja (corte lateral)</text>
+<path d="M250 146 L148 146 Q138 146 138 170 L138 382 Q138 392 148 392 L472 392 Q482 392 482 382 L482 170 Q482 146 472 146 L404 146" fill="none" stroke="#8d5524" stroke-width="11" stroke-linecap="butt"/>
+<path d="M250 146 L148 146 Q138 146 138 170 L138 382 Q138 392 148 392 L472 392 Q482 392 482 382 L482 170 Q482 146 472 146 L404 146" fill="none" stroke="#e07b00" stroke-width="2.5" stroke-dasharray="7 5"/>
+<rect x="150" y="212" width="320" height="168" fill="#f1f3f5" stroke="#868e96" stroke-width="2"/>
+<rect x="176" y="212" width="268" height="142" fill="#ffffff" stroke="#adb5bd" stroke-width="1.5"/>
+<rect x="150" y="170" width="320" height="39" fill="#e9ecef" stroke="#868e96" stroke-width="2"/>
+<text x="162" y="196" font-size="11.5" font-weight="bold" fill="#495057" text-anchor="start">Tapa</text>
+<text x="310" y="300" font-size="12" font-weight="bold" fill="#868e96" text-anchor="middle">Caja de telgopor</text>
+<rect x="250" y="118" width="120" height="38" rx="7" fill="#1f2937" stroke="#0b1220" stroke-width="2"/>
+<text x="310" y="142" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">Módulo</text>
+<rect x="366" y="138" width="10" height="16" fill="#9aa4b2" stroke="#6b7280" stroke-width="1.5"/>
+<rect x="376" y="142" width="12" height="8" fill="#d4af37"/>
+<rect x="388" y="138" width="18" height="16" rx="3" fill="#ad8b00" stroke="#6b5600" stroke-width="1.5"/>
+<line x1="248" y1="146" x2="40" y2="100" stroke="#8d5524" stroke-width="1.5"/>
+<circle cx="248" cy="146" r="3.5" fill="#8d5524"/>
+<text x="46" y="104" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Extremo fijo: el cable entra al módulo</text>
+<line x1="397" y1="138" x2="430" y2="100" stroke="#ad8b00" stroke-width="1.5"/>
+<circle cx="397" cy="138" r="3.5" fill="#ad8b00"/>
+<text x="436" y="104" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Plug enchufado en el jack del módulo</text>
+<line x1="138" y1="290" x2="60" y2="420" stroke="#8d5524" stroke-width="1.5"/>
+<circle cx="138" cy="290" r="3.5" fill="#8d5524"/>
+<text x="66" y="424" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Cinto</text>
+<line x1="482" y1="300" x2="400" y2="420" stroke="#e07b00" stroke-width="1.5"/>
+<circle cx="482" cy="300" r="3.5" fill="#e07b00"/>
+<text x="406" y="424" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Cable adentro del cinto</text>
+<text x="600" y="76" font-size="14" font-weight="bold" fill="#1d4e89" text-anchor="start">2 · La hebilla eléctrica</text>
+<rect x="640" y="145" width="90" height="90" rx="8" fill="#e5e7eb" stroke="#6b7280" stroke-width="2"/>
+<text x="685" y="134" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Jack en el módulo</text>
+<rect x="700" y="178" width="30" height="24" fill="#9aa4b2" stroke="#6b7280" stroke-width="1.5"/>
+<line x1="652" y1="216" x2="700" y2="202" stroke="#111111" stroke-width="2.5"/>
+<text x="648" y="230" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="start">a GND</text>
+<rect x="800" y="184" width="52" height="12" rx="5" fill="#d4af37" stroke="#8a6d00" stroke-width="1.5"/>
+<rect x="818" y="184" width="4" height="12" fill="#333"/>
+<rect x="852" y="166" width="150" height="48" rx="8" fill="#fff8e1" stroke="#ad8b00" stroke-width="2.5"/>
+<text x="927" y="156" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Plug de 3,5 mm en la punta del cinto</text>
+<rect x="878" y="179" width="60" height="22" rx="3" fill="#fff8e1" stroke="#111111" stroke-width="2"/>
+<text x="908.0" y="172" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle"></text>
+<text x="908" y="194" font-size="10.5" font-weight="bold" fill="#1a1a1a" text-anchor="middle">10 kΩ</text>
+<line x1="852" y1="190" x2="878" y2="190" stroke="#e07b00" stroke-width="2.5"/>
+<line x1="938" y1="190" x2="960" y2="190" stroke="#111111" stroke-width="2.5"/>
+<path d="M960 190 L960 207 L830 207 L830 196" fill="none" stroke="#111111" stroke-width="2"/>
+<rect x="1002" y="181" width="60" height="18" fill="#8d5524"/>
+<line x1="866" y1="176" x2="1062" y2="176" stroke="#e07b00" stroke-width="2.5" stroke-dasharray="7 5"/>
+<line x1="866" y1="176" x2="866" y2="190" stroke="#e07b00" stroke-width="2.5"/>
+<text x="1032" y="220" font-size="11" font-weight="bold" fill="#e07b00" text-anchor="middle">cable del cinto</text>
+<text x="808" y="216" font-size="10.5" font-weight="normal" fill="#555" text-anchor="middle">punta</text>
+<text x="836" y="230" font-size="10.5" font-weight="normal" fill="#555" text-anchor="middle">masa</text>
+<path d="M790 190 L740 190" stroke="#999" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arr)"/>
+<defs><marker id="arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 L10 4 L0 8 z" fill="#999"/></marker></defs>
+<text x="927" y="252" font-size="11.5" font-weight="normal" fill="#333" text-anchor="middle">10 kΩ adentro del plug,</text>
+<text x="927" y="268" font-size="11.5" font-weight="normal" fill="#333" text-anchor="middle">entre punta y masa</text>
+<text x="40" y="476" font-size="14" font-weight="bold" fill="#1d4e89" text-anchor="start">3 · El circuito</text>
+<circle cx="80" cy="560" r="6" fill="#d62828"/>
+<text x="80" y="544" font-size="13" font-weight="bold" fill="#d62828" text-anchor="middle">3V3</text>
+<line x1="86" y1="560" x2="140" y2="560" stroke="#d62828" stroke-width="3"/>
+<rect x="140" y="549" width="80" height="22" rx="3" fill="#fff8e1" stroke="#111111" stroke-width="2"/>
+<text x="180.0" y="542" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">10 kΩ</text>
+<text x="180" y="590" font-size="11" font-weight="normal" fill="#555" text-anchor="middle">en el módulo</text>
+<line x1="220" y1="560" x2="300" y2="560" stroke="#e07b00" stroke-width="3"/>
+<circle cx="300" cy="560" r="6" fill="#e07b00"/>
+<line x1="300" y1="560" x2="300" y2="620" stroke="#e07b00" stroke-width="3"/>
+<rect x="250" y="620" width="100" height="42" rx="6" fill="#ffffff" stroke="#e07b00" stroke-width="3"/>
+<text x="300" y="639" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">GPIO4 · ADC</text>
+<text x="300" y="655" font-size="10.5" font-weight="normal" fill="#555" text-anchor="middle">(mide tensión)</text>
+<line x1="306" y1="560" x2="640" y2="560" stroke="#8d5524" stroke-width="11"/>
+<line x1="306" y1="560" x2="640" y2="560" stroke="#e07b00" stroke-width="2.5" stroke-dasharray="7 5"/>
+<text x="473" y="544" font-size="12" font-weight="bold" fill="#8d5524" text-anchor="middle">cable a lo largo del cinto</text>
+<rect x="640" y="532" width="170" height="56" rx="8" fill="#fff8e1" stroke="#ad8b00" stroke-width="2.5"/>
+<line x1="640" y1="560" x2="685" y2="560" stroke="#e07b00" stroke-width="3"/>
+<rect x="685" y="549" width="80" height="22" rx="3" fill="#fff8e1" stroke="#111111" stroke-width="2"/>
+<text x="725.0" y="542" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle"></text>
+<text x="725" y="564" font-size="11" font-weight="bold" fill="#1a1a1a" text-anchor="middle">10 kΩ</text>
+<text x="725" y="606" font-size="11" font-weight="normal" fill="#555" text-anchor="middle">en el plug</text>
+<line x1="765" y1="560" x2="870" y2="560" stroke="#111111" stroke-width="3"/>
+<line x1="870" y1="546" x2="870" y2="574" stroke="#111111" stroke-width="4"/>
+<line x1="878" y1="551" x2="878" y2="569" stroke="#111111" stroke-width="3"/>
+<line x1="885" y1="556" x2="885" y2="564" stroke="#111111" stroke-width="2"/>
+<text x="905" y="565" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">GND</text>
+<text x="40" y="694" font-size="12.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Lo que mide el GPIO4</text>
+<rect x="40" y="704" width="330" height="46" rx="6" fill="#ffffff" stroke="#2a9d3f" stroke-width="2"/>
+<text x="50" y="722" font-size="11.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Enchufado</text>
+<text x="50" y="740" font-size="11.5" font-weight="normal" fill="#2a9d3f" text-anchor="start">≈ 1,65 V · cerrado</text>
+<rect x="385" y="704" width="330" height="46" rx="6" fill="#ffffff" stroke="#d62828" stroke-width="2"/>
+<text x="395" y="722" font-size="11.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Desenchufado o cinto cortado</text>
+<text x="395" y="740" font-size="11.5" font-weight="normal" fill="#d62828" text-anchor="start">≈ 3,3 V · abierto → violación</text>
+<rect x="730" y="704" width="330" height="46" rx="6" fill="#ffffff" stroke="#d62828" stroke-width="2"/>
+<text x="740" y="722" font-size="11.5" font-weight="bold" fill="#1a1a1a" text-anchor="start">Punta puenteada a masa con un cable</text>
+<text x="740" y="740" font-size="11.5" font-weight="normal" fill="#d62828" text-anchor="start">≈ 0 V · falta la resistencia → violación</text>
+<text x="550" y="780" font-size="11" font-weight="normal" fill="#555" text-anchor="middle">No detecta un puente sobre un tramo del cable que no incluya el plug: para eso está el sensor de luz adentro.</text>
+</svg>
