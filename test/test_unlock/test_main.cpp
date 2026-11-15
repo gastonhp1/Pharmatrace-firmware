@@ -66,11 +66,13 @@ static void test_valid_token_opens_once() {
   FakeVerifier v;
   UnlockSession s("VAL-001", fakeSha, fakeVerify, &v);
   TEST_ASSERT_TRUE(s.begin(kNonce, 1000));
+  TEST_ASSERT_EQUAL_UINT32(0, s.issuedAt());
   uint8_t tok[UNLOCK_TOKEN_SIZE];
   makeToken(tok, "VAL-001", kNonce, kNow, kNow + 60);
   TEST_ASSERT_EQUAL_UINT8(UnlockResult::Ok, s.handle(tok, sizeof tok, 2000, true, kNow + 5));
   TEST_ASSERT_EQUAL_UINT8(0xa1, s.actor()[0]);
   TEST_ASSERT_EQUAL_UINT8(0xa8, s.actor()[7]);
+  TEST_ASSERT_EQUAL_UINT32(kNow, s.issuedAt());  // hora firmada por el backend: sincroniza el reloj
   // Un solo uso: el mismo token ya no abre.
   TEST_ASSERT_EQUAL_UINT8(UnlockResult::NoChallenge, s.handle(tok, sizeof tok, 3000, true, kNow + 6));
 }

@@ -9,6 +9,7 @@
 // Gateway = backend/ de Pharmatrace. Ejemplo para pruebas en la LAN, sin TLS.
 #define GATEWAY_URL "http://192.168.0.10:3001"
 
-// Solo para pruebas de banco por WiFi. En la valija el transporte es el módem celular.
+// Solo para pruebas de banco por WiFi (compilar con -DBENCH_WIFI_UPLINK). En uso real las lecturas
+// salen por el celular vinculado por BLE.
 #define WIFI_SSID "mi-wifi"
 #define WIFI_PASS "mi-clave"

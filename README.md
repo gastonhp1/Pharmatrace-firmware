@@ -2,143 +2,185 @@
 
 # pharmatrace-firmware
 
-Firmware for the **PharmaBox** node: the cold-chain case that safeguards the batches of
-[Pharmatrace](https://github.com/gastonhp1/Pharmatrace). It measures the state of the cargo in transit, **signs every
-reading** with a secure element and uploads it to the Pharmatrace gateway, which verifies it and anchors evidence in
-the Hyperledger Fabric ledger.
+Firmware for the **PharmaBox**: a module that sits on the lid of a styrofoam medicine box, held by a strap that works
+as a tamper seal. It measures temperature and humidity inside the box, watches the seal, **signs every reading** and
+hands it over Bluetooth to a phone, which uploads it to the [Pharmatrace](https://github.com/gastonhp1/Pharmatrace)
+gateway. The gateway verifies each signature and anchors evidence in the Hyperledger Fabric ledger.
 
-The node does not talk to Fabric: only to the gateway (`backend/` in Pharmatrace). See [`docs/architecture.md`](docs/architecture.md) (in Spanish).
+The box talks to nothing but a phone. See [`docs/architecture.md`](docs/architecture.md) (in Spanish).
+
+![How the module sits on the box](docs/box.en.svg)
+
+## What changed in v2
+
+The first design was a self-contained case: GPS, LTE modem, secure element, solenoid lock, e-paper. v2 is a small
+gadget that leans on the phone:
+
+| | v1 | v2 |
+|---|---|---|
+| Uplink | LTE modem | The paired phone relays signed readings |
+| Position and time | GPS | Sent by the phone; time also from signed unlock tokens |
+| Signing key | ATECC608B secure element | Software ECDSA, key in the ESP32's flash |
+| Opening | Solenoid lock | Strap seal: a valid token allows breaking the seal |
+| Display | e-paper | ILI9488 TFT (320x480, SPI, no touch) |
+| Sensors | 2 × TMP117, SHT45, VEML7700, reed switch | SHT4x + VEML7700 on a probe inside the box |
+
+What this gives up, stated plainly:
+
+- **The key can be extracted** by someone holding the board, who could then forge readings. Enable flash encryption
+  and secure boot before handing a box over. Fine for a prototype; a regulated product should go back to a secure
+  element.
+- **The position is whatever the phone says.** The box signs it but cannot check it.
+- **No phone, no upload.** Readings wait in RAM (512, about 8.5 hours).
+- **No time after a reboot** until a phone or an unlock token provides it, and without time nothing is emitted.
 
 ## Status
 
-Skeleton. What is verified and what is not:
-
 | | Status |
 |---|---|
-| Reading format v1 (21 bytes), unit conversion, ingest JSON builder, reading queue | **Tested on the host**: 17 tests, the official test vector from `READING_FORMAT.md`, 5000 random readings against an independent Python implementation, and the gateway's real `ingest.js` accepting the JSON this firmware builds |
-| `src/main.cpp`, `uplink_wifi.cpp` (Arduino/ESP32) | Written, **not compiled or tested on hardware** |
-| Authenticated unlock, option A (token over BLE): token parsing and validation, nonce/QR, attempt lockout | **Tested on the host**: 14 tests, plus end-to-end runs where Python signs a token and the C++ code verifies it with the same mbedtls P-256 code the ESP32 uses (valid, wrong key, wrong box, wrong nonce, tampered token), including a token issued by the real Pharmatrace backend (`box/token.js`). Not tried against a real box |
-| BLE service, e-paper, lock driver, button (`ble_unlock`, `lock`, `display`, `main.cpp`) | Written, **only syntax-checked against stubs; not compiled with the real libraries or tested on hardware**. The e-paper is a serial stub for now |
-| Sensor drivers, cellular modem | TODO (`main.cpp` marks them) |
-| Signing with the ATECC608B | TODO: `signer_atecc608.cpp` fails on purpose instead of returning a fake signature |
+| Reading format v1, unit conversion, ingest JSON, queue | **Tested on the host** (17 tests, official vector from `READING_FORMAT.md`) |
+| Unlock token and challenge session | **Tested on the host** (14 tests) |
+| Strap seal state machine, clock without GPS, SHT4x CRC and conversion | **Tested on the host** (19 tests) |
+| Software signer and token verifier (mbedtls P-256) | **Tested on the host** against Python and against the **real gateway code** (`backend/iot/ingest.js`): it accepts the readings, flags the broken seal and rejects a tampered signature. Run `tools/host_check.sh` |
+| Everything Arduino/ESP32: `main.cpp`, BLE, display, sensor I2C, ADC | Written against datasheets and library docs, **only syntax-checked against stubs. Not compiled with the real libraries, not tested on hardware** |
+| Phone side of the relay (`docs/companion-protocol.md`) | **No app implements it yet.** PharmaTrace-mobile only opens the box |
 | Pins and wiring | Proposal, not validated on hardware |
-
-## Contract with the gateway
-
-Defined in [`iot/docs/READING_FORMAT.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/docs/READING_FORMAT.md) in Pharmatrace. If it changes there, it changes here.
-
-- A reading is **21 bytes, big-endian**: `ts`, `seq`, `tempCenti`, `humCenti`, `flags`, `latE5`, `lonE5`.
-- The device signs **SHA-256(payload)** with **ECDSA P-256**, as a raw 64-byte `r || s` signature (what the ATECC608B does natively).
-- Readings are uploaded with `POST /api/iot/readings` `{ deviceId, readings: [{ payload, signature }] }`, hex-encoded. There is no API key: the gateway only accepts valid signatures from a registered device that is actively monitoring a cargo.
-
-What the gateway requires and the firmware honours:
-
-- `seq` and `ts` **strictly increasing** within a cargo. `seq` is reserved and persisted in NVS *before* it is used.
-- At most **200 readings per request** (`UPLOAD_BATCH_MAX` = 50).
-- It answers `200 { accepted, duplicates, rejected }`. An exact duplicate is not an error, so **retrying a batch is safe**.
-- `409` if the box is not monitoring any cargo yet, `403` if it is not operational: in both cases the readings are kept.
-- `SAMPLE_INTERVAL_S` (60) must match the gateway's `IOT_SAMPLE_SECONDS`, because the gateway counts the last reading of each window as one sampling period.
-
-The firmware **does not judge** whether a temperature is in range: the policy (2–8 °C, excursion budget) lives in the ledger and is enforced by the chaincode.
 
 ## Hardware
 
-Per Pharmatrace's [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md): **ESP32-S3** (not the classic ESP32), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, LTE modem (A7670 or SIM7080G), a lid reed switch and, for the authenticated unlock, an SPI e-paper display, a button and a solenoid lock (see [`docs/unlock-protocol.md`](docs/unlock-protocol.md), in Spanish).
+- **ESP32-S3** (DevKitC-1)
+- **ILI9488** TFT, 320x480, SPI, no touch
+- **Internal probe** on a flat 4-wire cable: **SHT4x** (temperature and humidity) and **VEML7700** (light)
+- **LIS3DH** accelerometer
+- **Strap seal**: a wire along the strap closing through a 10 kΩ resistor in the buckle, and a force-sensitive
+  resistor (FSR) under the module
+- LiPo battery with charger/protection, a button and an active buzzer
+- Resistors: 3 × 10 kΩ, 2 × 100 kΩ
+
+No GPS, modem, secure element, lock or fuel gauge.
 
 ## Wiring
 
 ![Wiring diagram](docs/wiring.en.svg)
 
-Display, button and lock (teal pins above) in detail:
-
-![Unlock wiring](docs/wiring-unlock.en.svg)
-
 Pins are in [`include/config.h`](include/config.h), using ESP32-S3-DevKitC-1 numbering:
 
 | Function | GPIO | Connects to |
 |---|---|---|
-| I2C SDA / SCL | 8 / 9 | TMP117 ×2, SHT45, VEML7700, LIS3DH, ATECC608B, MAX17048 |
+| I2C SDA / SCL | 8 / 9 | LIS3DH on the module; SHT4x and VEML7700 on the probe |
 | INT1 (shock) | 5 | LIS3DH |
-| Lid reed | 1 | Reed switch to GND, with `INPUT_PULLUP` |
-| UART1 GPS | 42 (RX) / 41 (TX) | GPS TX / RX |
-| UART2 modem | 40 (RX) / 39 (TX) | Modem TX / RX |
-| Modem PWRKEY | 47 | Modem |
-| E-paper SPI (SCK / MOSI / CS / DC / RST / BUSY) | 12 / 11 / 10 / 13 / 14 / 4 | Display showing the unlock QR |
-| Unlock button | 2 | Button to GND, with `INPUT_PULLUP` |
-| Lock drive / latch sensor | 6 / 7 | MOSFET gate for the solenoid / latch microswitch |
+| Seal loop | 4 (ADC) | 3V3 – 10 kΩ – **pin** – strap wire – 10 kΩ in the buckle – GND |
+| Seal pressure | 6 (ADC) | 3V3 – FSR – **pin** – 10 kΩ – GND |
+| Battery | 7 (ADC) | VBAT – 100 kΩ – **pin** – 100 kΩ – GND |
+| TFT CS / DC / RST / MOSI / SCK | 42 / 41 / 40 / 39 / 38 | ILI9488 (its SDO/MISO stays unconnected) |
+| TFT backlight | 21 | ILI9488 LED |
+| Button | 2 | Button to GND, `INPUT_PULLUP` |
+| Buzzer | 47 | Active buzzer (through a transistor above ~20 mA) |
 
 Things to keep in mind:
 
-- **The modem is not powered from the DevKit's 3V3.** It draws from the battery with its own capacitor: peaks reach ~2 A depending on the module.
-- Check whether your modem breakout uses 1.8 V or 3.3 V logic levels.
-- On octal PSRAM modules (N8R8) GPIO35–37 are unavailable; this map does not use them. GPIO0/3/45/46 are strapping pins and GPIO19/20 are the USB.
+- The analog inputs must be on ADC1 (GPIO1–10): ADC2 does not work while the radio is on.
+- The loop reads about 1.65 V closed, 3.3 V open or cut, and 0 V if someone bridges the buckle with a plain wire.
+  A jumper across a stretch of strap that does not include the resistor is **not** detectable this way; the pressure
+  sensor and the light sensor are there for that.
+- The seal thresholds (`SealConfig` in `pharma_seal.h`) are guesses. A false "seal broken" marks a cargo as
+  `COMPROMISED`, so calibrate them on the real box before trusting them.
+- Inside a cold box humidity is high: use an SHT4x with a membrane filter and coat the probe board.
+- The backlight draws 40–80 mA, so the display turns itself off after 30 s.
 - GPIO39–42 are the pin-based JTAG pins; they work as plain GPIO as long as you debug over the S3's native USB.
-- GPIO1 and GPIO5 are RTC GPIOs: they can wake the device from deep sleep.
+  GPIO0/3/45/46 are strapping pins, GPIO19/20 are the USB, and GPIO35–37 are unavailable on octal PSRAM modules.
 - Pin order comes from Espressif's DevKitC-1 user guide. Check it against your board's silkscreen before soldering.
-- I2C addresses: TMP117 #1 uses `ADD0 → GND` (0x48) and #2 uses `ADD0 → V+` (0x49); the LIS3DH uses `SA0 → GND` (0x18). The MAX17048 is powered from the battery, not from 3V3.
+
+The diagrams are generated: `python3 tools/gen_wiring.py en docs/wiring.en.svg` and `tools/gen_box.py`.
+
+## How it works
+
+**Readings.** Every 60 s the box reads the probe, builds the 21-byte reading of
+[`READING_FORMAT.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/docs/READING_FORMAT.md), signs
+SHA-256(payload) with ECDSA P-256 (raw `r || s`) and queues it. That contract is unchanged, so the gateway needs no
+changes. `seq` and `ts` are strictly increasing; `seq` is persisted before use.
+
+**Seal.** Three signals say the box is still closed: the strap loop, the pressure under the module, and the probe
+(present, and dark inside). Any of them failing without permission leaves the box in "seal broken", which goes out
+as `SEAL_BROKEN` in every reading until a valid unlock. Light inside also raises `LID_OPENED`.
+
+**Opening.** Press the button: the display shows a QR with a one-time nonce. The app sends it to the backend, which
+decides whether that user may open and signs a short token. The app writes the token over BLE; the box verifies it
+offline and allows the seal to be opened for 10 minutes without counting it as a breach. Closing it re-arms the
+seal. Protocol in [`docs/unlock-protocol.md`](docs/unlock-protocol.md) (Spanish).
+
+**Phone.** A phone paired with the 6-digit PIN on the display sets time and position, receives the signed readings
+and uploads them, and gets an alert from the box if it walks away. Contract in
+[`docs/companion-protocol.md`](docs/companion-protocol.md) (Spanish).
 
 ## Layout
 
 ```
 include/config.h               Pins, intervals and sizes
-include/secrets.example.h      Template for DEVICE_ID, gateway and WiFi (secrets.h is not versioned)
-lib/pharma_proto/              Protocol code with no Arduino dependency (tested on the host)
+include/secrets.example.h      Template for DEVICE_ID and bench WiFi (secrets.h is not versioned)
+include/unlock_key.example.h   Template for the backend's unlock public key
+lib/pharma_proto/              Logic with no Arduino dependency (tested on the host)
   pharma_reading.*               21-byte format, conversions, hex
   pharma_ingest.*                Body of POST /api/iot/readings
   pharma_queue.h                 Queue of signed readings waiting to upload
   pharma_unlock.*                Unlock token, QR text, challenge/attempt session
-src/main.cpp                   Loop: sense → sign → enqueue → upload
-src/signer*.{h,cpp}            Signing interface + ATECC608B skeleton
+  pharma_seal.*                  Strap seal state machine
+  pharma_clock.h                 Clock without GPS or RTC
+  pharma_sht4x.*                 SHT4x CRC and conversion
+src/main.cpp                   Loop: seal, unlock, phone, sample → sign → queue
+src/p256_soft.*, signer*       Software ECDSA P-256 (mbedtls), key in NVS
 src/verifier_mbedtls.*         P-256 verification of the unlock token
-src/ble_unlock.*, lock.*, display*   BLE service, solenoid lock, display (serial stub)
+src/ble_box.*                  BLE: unlock service and paired-phone service
+src/sensors.*                  SHT4x, VEML7700, LIS3DH over I2C; loop, FSR and battery over ADC
+src/display*                   ILI9488 with LovyanGFX, or serial output without the library
+src/uplink*                    Direct WiFi upload, bench only (-DBENCH_WIFI_UPLINK)
+test/                          Host tests: test_proto, test_unlock, test_seal
+tools/host_check.sh            Host checks that need mbedtls, Python and the Pharmatrace backend
 tools/unlock_token.py          Generates a test key and signs unlock tokens
-src/uplink*.{h,cpp}            Transport interface + WiFi for bench testing
-test/test_proto/               Protocol tests, including the official vector
-test/test_unlock/              Unlock token/session tests
-tools/e2e_unlock.cpp           Host program: verifies a token signed by tools/unlock_token.py
-docs/unlock-protocol.md        Authenticated unlock protocol (Spanish)
-docs/architecture.md           How it fits with the gateway and Fabric (Spanish)
-docs/wiring.{en,es}.svg        Wiring diagram
+tools/gen_wiring.py, gen_box.py  Generate the diagrams
+docs/                          Architecture, unlock protocol, companion protocol (Spanish), diagrams
 ```
 
 ## Tests and build
 
 ```bash
 pip install platformio
-pio test -e native              # protocol, on the host (no hardware)
+pio test -e native              # logic, on the host (no hardware)
 
-cp include/secrets.example.h include/secrets.h    # fill in DEVICE_ID, GATEWAY_URL, WiFi
-cp include/unlock_key.example.h include/unlock_key.h   # the backend's unlock PUBLIC key (`node backend/scripts/unlock-key.js generate` in Pharmatrace prints it)
+sudo apt install g++ libmbedtls-dev && pip install cryptography
+tools/host_check.sh ../Pharmatrace/backend     # signer, token verifier, real gateway code
+
+cp include/secrets.example.h include/secrets.h        # DEVICE_ID
+cp include/unlock_key.example.h include/unlock_key.h  # the backend's unlock PUBLIC key
+                                                      # (`node scripts/unlock-key.js generate` prints it)
 pio run                         # build for ESP32-S3
 pio run -t upload && pio device monitor
 ```
 
-To exercise the gateway without hardware, Pharmatrace ships a virtual box in `iot/simulator/` that generates signed
-readings in the same format.
+At boot the box prints its public key: register it with `POST /api/iot/devices`. To try an unlock without the app,
+paste the token from `tools/unlock_token.py` into the `unlock` characteristic with nRF Connect.
 
 ## To do
 
-- **ATECC608B:** provision it (generate the P-256 key on the chip, read only the public key, lock configuration and data) and implement `Atecc608Signer`. The public key printed at boot is the one to register with `POST /api/iot/devices`.
-- **Secure boot and flash encryption** on the ESP32-S3 before handing a box over.
-- **Drivers** for TMP117, SHT45, LIS3DH, VEML7700, MAX17048, GPS and the modem (with TLS).
-- **Persist the queue to flash** (LittleFS): it lives in RAM today and is lost on reboot. When it fills up it drops the oldest reading, leaving a `seq` gap.
-- **Deep sleep** with wake-up on the reed switch and the accelerometer, for battery life.
-- **Two ways format v1 falls short** (it has to change in all three repos at once):
-  - It has a single temperature field, but the BOM includes two TMP117s to detect failures or tampering. We still need to decide what to report and how to flag a disagreement (bits 5–7 of `flags` are free; 0x08 and 0x10 are used for unlock events, documented in `READING_FORMAT.md`).
-  - There is no "valid GPS fix" bit: without a fix the last known position is reused.
-- **Unlock, still missing:** compile and test BLE/e-paper/lock on hardware (the code is only syntax-checked); real e-paper driver and QR rendering; nonce from the ATECC608B's TRNG instead of `esp_fill_random()`; chaincode events for granted/denied unlocks and forced-open detection (Pharmatrace side). The backend and the Android app already exist in Pharmatrace.
-- **Time:** without a valid time (GPS or a synced RTC) nothing is emitted.
+- **Build and test on hardware.** None of the ESP32 code has been compiled with the real libraries.
+- **App side of the relay**: pairing, time/position, uploading readings.
+- **Calibrate the seal thresholds** on a real box, and decide whether the pressure sensor earns its false positives.
+- **Flash encryption and secure boot**, since the key now lives in flash.
+- **Persist the queue to flash** (LittleFS): it lives in RAM and is lost on reboot.
+- **Deep sleep** between samples, waking on the button and the accelerometer. Today the loop never sleeps.
+- **RTC** (DS3231 or similar) to keep time across reboots.
+- **Format v1 falls short** in two ways that need all repos to change together: it cannot say "no temperature
+  data" or "position from the phone / no position".
+- **Lockout by a third party**: three invalid tokens from anyone in BLE range lock the QR until the button is
+  pressed again (see `docs/unlock-protocol.md`).
 
 ## Relationship with Pharmatrace
 
-[Pharmatrace](https://github.com/gastonhp1/Pharmatrace) is now the **Hyperledger Fabric** version: Go chaincode, a local 4-organization network, an Express API on top of the Fabric Gateway, and the `iot/` folder. The Solidity/Hardhat version lives in [Pharmatrace-evm](https://github.com/gastonhp1/Pharmatrace-evm). This repo is separate because the firmware's build, flashing and versioning cycle is independent.
-
-Around the box:
-
 | Repo | Role for the PharmaBox |
 |---|---|
-| [Pharmatrace](https://github.com/gastonhp1/Pharmatrace) | Gateway that verifies and anchors readings (`/api/iot`), and the unlock backend (`/api/box`): users, who-can-open policy, audit, token signing. See `iot/docs/BOX_UNLOCK.md` there |
-| [PharmaTrace-mobile](https://github.com/gastonhp1/PharmaTrace-mobile) | Android app: scans the QR, asks the backend for a token, writes it over BLE. Its UUIDs, result codes and token size were checked against this firmware's code; its expectations are listed in [`docs/unlock-protocol.md`](docs/unlock-protocol.md). Not tested against a real box |
+| [Pharmatrace](https://github.com/gastonhp1/Pharmatrace) | Hyperledger Fabric network and chaincode, the gateway that verifies and anchors readings (`/api/iot`), and the unlock backend (`/api/box`). Its `iot/hardware/BOM.md` and `iot/docs/BOX_UNLOCK.md` still describe the v1 hardware |
+| [PharmaTrace-mobile](https://github.com/gastonhp1/PharmaTrace-mobile) | Android app: scans the QR, asks the backend for a token and writes it over BLE. Its UUIDs, result codes and token size match this firmware. It does not implement the relay yet |
 | [PharmaTrace-UI](https://github.com/gastonhp1/PharmaTrace-UI) | Web UI over the same REST API. It does not talk to the box |
+| [Pharmatrace-evm](https://github.com/gastonhp1/Pharmatrace-evm) | The earlier Solidity/Hardhat version |
 
-Last cross-checked against these repos on 2026-11-15: the reading format and the unlock token did not change; the backend gained the rule "deactivated box: only the regulator" and `GET /api/box/unlock-key`.
+Last cross-checked against these repos on 2026-11-15.

@@ -147,6 +147,7 @@ UnlockResult UnlockSession::check(const uint8_t* token, size_t len, bool timeVal
   if (timeValid && t.exp < nowUnix) return UnlockResult::Expired;
 
   memcpy(actor_, t.actor, ACTOR_SIZE);
+  issuedAt_ = t.iat;
   return UnlockResult::Ok;
 }
 

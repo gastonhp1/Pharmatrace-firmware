@@ -2,143 +2,189 @@
 
 # pharmatrace-firmware
 
-Firmware del nodo de la **PharmaBox** (la valija de cadena de frío que custodia los lotes de
-[Pharmatrace](https://github.com/gastonhp1/Pharmatrace)). Mide el estado del cargamento durante el transporte,
-**firma cada lectura** con un secure element y la sube al gateway de Pharmatrace, que la verifica y ancla
-evidencia en el ledger de Hyperledger Fabric.
+Firmware de la **PharmaBox**: un módulo que va sobre la tapa de una caja de telgopor para medicamentos, sujeto por un
+cinto que funciona como precinto. Mide temperatura y humedad adentro de la caja, vigila el precinto, **firma cada
+lectura** y se la pasa por Bluetooth a un celular, que la sube al gateway de
+[Pharmatrace](https://github.com/gastonhp1/Pharmatrace). El gateway verifica cada firma y ancla la evidencia en el
+ledger de Hyperledger Fabric.
 
-El nodo no habla con Fabric: solo con el gateway (`backend/` de Pharmatrace). Ver [`docs/architecture.md`](docs/architecture.md).
+La caja no habla con nada más que un celular. Ver [`docs/architecture.md`](docs/architecture.md).
+
+![Cómo va el módulo sobre la caja](docs/box.es.svg)
+
+## Qué cambió en la v2
+
+El primer diseño era una valija autónoma: GPS, módem LTE, elemento seguro, cerradura de solenoide, e-paper. La v2
+es un aparato chico que se apoya en el celular:
+
+| | v1 | v2 |
+|---|---|---|
+| Subida | Módem LTE | El celular vinculado releva las lecturas firmadas |
+| Posición y hora | GPS | Las manda el celular; la hora también sale de los tokens de apertura firmados |
+| Clave de firma | Elemento seguro ATECC608B | ECDSA por software, clave en la flash del ESP32 |
+| Apertura | Cerradura de solenoide | Precinto de cinto: un token válido habilita romperlo |
+| Pantalla | e-paper | TFT ILI9488 (320x480, SPI, sin táctil) |
+| Sensores | 2 × TMP117, SHT45, VEML7700, reed switch | SHT4x + VEML7700 en una sonda adentro de la caja |
+
+Lo que se resigna, dicho claro:
+
+- **La clave se puede extraer** teniendo la placa en la mano, y con ella fabricar lecturas. Hay que activar flash
+  encryption y secure boot antes de entregar una caja. Está bien para un prototipo; un producto regulado debería
+  volver a un elemento seguro.
+- **La posición es la que diga el celular.** La caja la firma pero no la puede comprobar.
+- **Sin celular no hay subida.** Las lecturas esperan en RAM (512, unas 8,5 horas).
+- **Después de un reinicio no hay hora** hasta que la ponga un celular o un token de apertura, y sin hora no se
+  emite nada.
 
 ## Estado
 
-Esqueleto. Esto es lo que está verificado y lo que no:
-
 | | Estado |
 |---|---|
-| Formato de lectura v1 (21 bytes), conversión de unidades, armado del JSON de ingesta, cola de lecturas | **Probado en la PC**: 17 tests, el vector oficial de `READING_FORMAT.md`, 5000 lecturas aleatorias contra una implementación independiente en Python y el código real de `ingest.js` del gateway aceptando el JSON que arma este firmware |
-| `src/main.cpp`, `uplink_wifi.cpp` (Arduino/ESP32) | Escrito, **no compilado ni probado en hardware** |
-| Apertura autenticada, opción A (token por BLE): validación del token, nonce/QR, bloqueo por intentos | **Probado en la PC**: 14 tests, más corridas de punta a punta donde Python firma un token y el código C++ lo verifica con el mismo código mbedtls P-256 que usa el ESP32 (válido, otra clave, otra caja, otro nonce, token alterado), incluido un token emitido por el backend real de Pharmatrace (`box/token.js`). No probado con una caja real |
-| Servicio BLE, e-paper, cerradura y botón (`ble_unlock`, `lock`, `display`, `main.cpp`) | Escrito, **solo revisado de sintaxis contra stubs; no compilado con las librerías reales ni probado en hardware**. La e-paper es por ahora una salida por serie |
-| Drivers de sensores, módem celular | TODO (`main.cpp` los marca) |
-| Firma con el ATECC608B | TODO: `signer_atecc608.cpp` falla a propósito en vez de devolver una firma falsa |
-| Pines y cableado | Propuesta sin validar en hardware |
-
-## Contrato con el gateway
-
-Se define en [`iot/docs/READING_FORMAT.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/docs/READING_FORMAT.md) de Pharmatrace. Si cambia ahí, cambia acá.
-
-- Una lectura son **21 bytes, big-endian**: `ts`, `seq`, `tempCenti`, `humCenti`, `flags`, `latE5`, `lonE5`.
-- El dispositivo firma **SHA-256(payload)** con **ECDSA P-256**, firma cruda `r || s` de 64 bytes (lo que hace el ATECC608B).
-- Se sube con `POST /api/iot/readings` `{ deviceId, readings: [{ payload, signature }] }` en hex. No lleva clave de API: el gateway acepta solo firmas válidas de un dispositivo registrado y con monitoreo activo.
-
-Lo que el gateway exige y el firmware respeta:
-
-- `seq` y `ts` **estrictamente crecientes** dentro del cargamento. El `seq` se reserva y persiste en NVS *antes* de usarlo.
-- Máximo **200 lecturas por request** (`UPLOAD_BATCH_MAX` = 50).
-- Responde `200 { accepted, duplicates, rejected }`. Un duplicado exacto no es error, así que **reintentar un lote es seguro**.
-- `409` si la valija todavía no monitorea ningún cargamento, `403` si no está operativa: en ambos casos las lecturas se conservan.
-- `SAMPLE_INTERVAL_S` (60) tiene que coincidir con `IOT_SAMPLE_SECONDS` del gateway, que cuenta la última lectura de cada ventana como un período de muestreo.
-
-El firmware **no juzga** si una temperatura está en rango: la política (2–8 °C, presupuesto de excursión) vive en el ledger y la aplica el chaincode.
+| Formato de lectura v1, conversión de unidades, JSON de ingesta, cola | **Probado en la PC** (17 tests, vector oficial de `READING_FORMAT.md`) |
+| Token de apertura y sesión de desafío | **Probado en la PC** (14 tests) |
+| Máquina de estados del precinto, reloj sin GPS, CRC y conversión del SHT4x | **Probado en la PC** (19 tests) |
+| Firmador por software y verificador del token (mbedtls P-256) | **Probado en la PC** contra Python y contra el **código real del gateway** (`backend/iot/ingest.js`): acepta las lecturas, marca el precinto violado y rechaza una firma alterada. Se corre con `tools/host_check.sh` |
+| Todo lo de Arduino/ESP32: `main.cpp`, BLE, pantalla, I2C de sensores, ADC | Escrito contra hojas de datos y documentación de las librerías, **solo revisado de sintaxis contra stubs. No compilado con las librerías reales ni probado en hardware** |
+| Lado del celular del relevo (`docs/companion-protocol.md`) | **Ninguna app lo implementa todavía.** PharmaTrace-mobile solo abre la caja |
+| Pines y cableado | Propuesta, sin validar en hardware |
 
 ## Hardware
 
-Según [`iot/hardware/BOM.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/hardware/BOM.md) de Pharmatrace: **ESP32-S3** (no la ESP32 clásica), 2 × TMP117, SHT45, VEML7700, LIS3DH, **ATECC608B**, MAX17048, GPS, módem LTE (A7670 o SIM7080G), reed switch de tapa y, para la apertura autenticada, una pantalla e-paper SPI, un botón y una cerradura de solenoide (ver [`docs/unlock-protocol.md`](docs/unlock-protocol.md)).
+- **ESP32-S3** (DevKitC-1)
+- TFT **ILI9488**, 320x480, SPI, sin táctil
+- **Sonda interna** con cable plano de 4 hilos: **SHT4x** (temperatura y humedad) y **VEML7700** (luz)
+- Acelerómetro **LIS3DH**
+- **Precinto de cinto**: un cable a lo largo del cinto que cierra a través de una resistencia de 10 kΩ en la
+  hebilla, y un sensor de fuerza resistivo (FSR) debajo del módulo
+- Batería LiPo con cargador/protección, un botón y un buzzer activo
+- Resistencias: 3 × 10 kΩ, 2 × 100 kΩ
+
+Sin GPS, módem, elemento seguro, cerradura ni medidor de batería.
 
 ## Cableado
 
 ![Diagrama de cableado](docs/wiring.es.svg)
 
-Pantalla, botón y cerradura (pines en azul petróleo) en detalle:
-
-![Cableado de la apertura](docs/wiring-unlock.es.svg)
-
-Pines en [`include/config.h`](include/config.h), en la numeración del ESP32-S3-DevKitC-1:
+Los pines están en [`include/config.h`](include/config.h), con la numeración del ESP32-S3-DevKitC-1:
 
 | Función | GPIO | Va a |
 |---|---|---|
-| I2C SDA / SCL | 8 / 9 | TMP117 ×2, SHT45, VEML7700, LIS3DH, ATECC608B, MAX17048 |
+| I2C SDA / SCL | 8 / 9 | LIS3DH en el módulo; SHT4x y VEML7700 en la sonda |
 | INT1 (golpe) | 5 | LIS3DH |
-| Reed de la tapa | 1 | Reed switch a GND, con `INPUT_PULLUP` |
-| UART1 GPS | 42 (RX) / 41 (TX) | TX / RX del GPS |
-| UART2 módem | 40 (RX) / 39 (TX) | TX / RX del módem |
-| PWRKEY del módem | 47 | Módem |
-| SPI de la e-paper (SCK / MOSI / CS / DC / RST / BUSY) | 12 / 11 / 10 / 13 / 14 / 4 | Pantalla que muestra el QR de apertura |
-| Botón «abrir» | 2 | Botón a GND, con `INPUT_PULLUP` |
-| Cerradura (comando / sensor de pestillo) | 6 / 7 | Compuerta del MOSFET del solenoide / microswitch del pestillo |
+| Lazo del precinto | 4 (ADC) | 3V3 – 10 kΩ – **pin** – cable del cinto – 10 kΩ en la hebilla – GND |
+| Presión del precinto | 6 (ADC) | 3V3 – FSR – **pin** – 10 kΩ – GND |
+| Batería | 7 (ADC) | VBAT – 100 kΩ – **pin** – 100 kΩ – GND |
+| TFT CS / DC / RST / MOSI / SCK | 42 / 41 / 40 / 39 / 38 | ILI9488 (su SDO/MISO queda sin conectar) |
+| Retroiluminación del TFT | 21 | LED del ILI9488 |
+| Botón | 2 | Botón a GND, `INPUT_PULLUP` |
+| Buzzer | 47 | Buzzer activo (con transistor si pasa de ~20 mA) |
 
 Cosas a tener en cuenta:
 
-- **El módem no se alimenta del 3V3 del DevKit.** Toma la corriente de la batería con su propio capacitor: los picos llegan a ~2 A según el módulo.
-- Verificar si el breakout del módem usa niveles lógicos de 1.8 V o 3.3 V.
-- Con módulos de PSRAM octal (N8R8) los GPIO35–37 no están disponibles; este mapa no los usa. GPIO0/3/45/46 son de strapping y GPIO19/20 son el USB.
-- GPIO39–42 son los pines de JTAG por pines; sirven como GPIO mientras se depure por el USB nativo.
-- GPIO1 y GPIO5 son GPIO RTC: pueden despertar al equipo de deep sleep.
-- El orden de pines sale de la guía de Espressif del DevKitC-1. Verificalo contra la serigrafía de tu placa antes de soldar.
-- Direcciones I2C: el TMP117 #1 usa `ADD0 → GND` (0x48) y el #2 `ADD0 → V+` (0x49); el LIS3DH usa `SA0 → GND` (0x18). El MAX17048 se alimenta de la batería, no del 3V3.
+- Las entradas analógicas tienen que ir en ADC1 (GPIO1–10): ADC2 no funciona con la radio encendida.
+- El lazo da unos 1,65 V cerrado, 3,3 V abierto o cortado y 0 V si alguien puentea la hebilla con un cable. Un
+  puente sobre un tramo del cinto que no incluye la resistencia **no** se detecta así; para eso están el sensor
+  de presión y el de luz.
+- Los umbrales del precinto (`SealConfig` en `pharma_seal.h`) son estimados. Un «precinto violado» falso deja un
+  cargamento `COMPROMISED`, así que hay que calibrarlos con la caja real antes de confiar.
+- Adentro de una caja fría la humedad es alta: usar un SHT4x con filtro de membrana y barnizar la plaquita.
+- La retroiluminación consume 40–80 mA, por eso la pantalla se apaga sola a los 30 s.
+- GPIO39–42 son los pines de JTAG por pines; sirven como GPIO normales mientras se depure por el USB nativo del S3.
+  GPIO0/3/45/46 son de strapping, GPIO19/20 son el USB y GPIO35–37 no están en módulos con PSRAM octal.
+- El orden de los pines sale de la guía de usuario de Espressif del DevKitC-1. Verificar contra la serigrafía de tu
+  placa antes de soldar.
+
+Los diagramas se generan: `python3 tools/gen_wiring.py es docs/wiring.es.svg` y `tools/gen_box.py`.
+
+## Cómo funciona
+
+**Lecturas.** Cada 60 s la caja lee la sonda, arma la lectura de 21 bytes de
+[`READING_FORMAT.md`](https://github.com/gastonhp1/Pharmatrace/blob/main/iot/docs/READING_FORMAT.md), firma
+SHA-256(payload) con ECDSA P-256 (`r || s` crudo) y la encola. Ese contrato no cambió, así que el gateway no
+necesita cambios. `seq` y `ts` son estrictamente crecientes; `seq` se persiste antes de usarse.
+
+**Precinto.** Tres señales dicen que la caja sigue cerrada: el lazo del cinto, la presión debajo del módulo y la
+sonda (presente y a oscuras). Si alguna falla sin permiso, la caja queda en «precinto violado», que sale como
+`SEAL_BROKEN` en cada lectura hasta una apertura válida. La luz adentro además levanta `LID_OPENED`.
+
+**Apertura.** Se aprieta el botón: la pantalla muestra un QR con un nonce de un solo uso. La app se lo manda al
+backend, que decide si ese usuario puede abrir y firma un token corto. La app escribe el token por BLE; la caja lo
+verifica sin internet y habilita abrir el precinto durante 10 minutos sin que cuente como violación. Al cerrarlo
+se vuelve a armar. Protocolo en [`docs/unlock-protocol.md`](docs/unlock-protocol.md).
+
+**Celular.** Un celular vinculado con el PIN de 6 dígitos de la pantalla pone hora y posición, recibe las lecturas
+firmadas y las sube, y la caja le avisa si se aleja. Contrato en
+[`docs/companion-protocol.md`](docs/companion-protocol.md).
 
 ## Estructura
 
 ```
 include/config.h               Pines, intervalos y tamaños
-include/secrets.example.h      Plantilla de DEVICE_ID, gateway y WiFi (secrets.h no se versiona)
-lib/pharma_proto/              Protocolo sin Arduino (se prueba en la PC)
+include/secrets.example.h      Plantilla de DEVICE_ID y WiFi de banco (secrets.h no se versiona)
+include/unlock_key.example.h   Plantilla de la clave pública de apertura del backend
+lib/pharma_proto/              Lógica sin dependencias de Arduino (probada en la PC)
   pharma_reading.*               Formato de 21 bytes, conversiones, hex
   pharma_ingest.*                Cuerpo de POST /api/iot/readings
   pharma_queue.h                 Cola de lecturas firmadas pendientes
   pharma_unlock.*                Token de apertura, texto del QR, sesión de desafío e intentos
-src/main.cpp                   Ciclo: sensar → firmar → encolar → subir
-src/signer*.{h,cpp}            Interfaz de firma + esqueleto del ATECC608B
+  pharma_seal.*                  Máquina de estados del precinto
+  pharma_clock.h                 Reloj sin GPS ni RTC
+  pharma_sht4x.*                 CRC y conversión del SHT4x
+src/main.cpp                   Loop: precinto, apertura, celular, muestrear → firmar → encolar
+src/p256_soft.*, signer*       ECDSA P-256 por software (mbedtls), clave en NVS
 src/verifier_mbedtls.*         Verificación P-256 del token de apertura
-src/ble_unlock.*, lock.*, display*   Servicio BLE, cerradura de solenoide, pantalla (stub por serie)
+src/ble_box.*                  BLE: servicio de apertura y servicio del celular vinculado
+src/sensors.*                  SHT4x, VEML7700 y LIS3DH por I2C; lazo, FSR y batería por ADC
+src/display*                   ILI9488 con LovyanGFX, o salida por serie sin la librería
+src/uplink*                    Subida directa por WiFi, solo banco (-DBENCH_WIFI_UPLINK)
+test/                          Tests en la PC: test_proto, test_unlock, test_seal
+tools/host_check.sh            Comprobaciones que necesitan mbedtls, Python y el backend de Pharmatrace
 tools/unlock_token.py          Genera una clave de prueba y firma tokens de apertura
-src/uplink*.{h,cpp}            Interfaz de transporte + WiFi para pruebas de banco
-test/test_proto/               Tests del protocolo, incluido el vector oficial
-test/test_unlock/              Tests del token y la sesión de apertura
-tools/e2e_unlock.cpp           Programa de la PC: verifica un token firmado con tools/unlock_token.py
-docs/unlock-protocol.md        Protocolo de apertura autenticada
-docs/architecture.md           Cómo encaja con el gateway y Fabric
-docs/wiring.{es,en}.svg        Diagrama de cableado (español e inglés)
+tools/gen_wiring.py, gen_box.py  Generan los diagramas
+docs/                          Arquitectura, protocolo de apertura, protocolo del celular, diagramas
 ```
 
 ## Tests y build
 
 ```bash
 pip install platformio
-pio test -e native              # protocolo, en la PC (sin hardware)
+pio test -e native              # lógica, en la PC (sin hardware)
 
-cp include/secrets.example.h include/secrets.h    # completar DEVICE_ID, GATEWAY_URL, WiFi
-cp include/unlock_key.example.h include/unlock_key.h   # clave PÚBLICA de apertura del backend (la imprime `node backend/scripts/unlock-key.js generate` en Pharmatrace)
+sudo apt install g++ libmbedtls-dev && pip install cryptography
+tools/host_check.sh ../Pharmatrace/backend     # firmador, verificador del token, código real del gateway
+
+cp include/secrets.example.h include/secrets.h        # DEVICE_ID
+cp include/unlock_key.example.h include/unlock_key.h  # clave PÚBLICA de apertura del backend
+                                                      # (la imprime `node scripts/unlock-key.js generate`)
 pio run                         # compilar para ESP32-S3
 pio run -t upload && pio device monitor
 ```
 
-Para probar el gateway sin hardware, Pharmatrace trae un simulador de valija en `iot/simulator/` que genera
-lecturas firmadas con el mismo formato.
+Al arrancar, la caja imprime su clave pública: hay que registrarla con `POST /api/iot/devices`. Para probar una
+apertura sin la app, pegar el token de `tools/unlock_token.py` en la característica `unlock` con nRF Connect.
 
 ## Pendiente
 
-- **ATECC608B:** aprovisionar (clave P-256 generada en el chip, solo se lee la pública, bloquear configuración y datos) e implementar `Atecc608Signer`. La pública que imprime el arranque es la que se registra con `POST /api/iot/devices`.
-- **Secure boot y flash encryption** del ESP32-S3 antes de entregar una valija.
-- **Drivers** de TMP117, SHT45, LIS3DH, VEML7700, MAX17048, GPS y el módem (con TLS).
-- **Persistir la cola en flash** (LittleFS): hoy está en RAM y se pierde al reiniciar. Si se llena, descarta la más vieja y queda un hueco de `seq`.
-- **Deep sleep** con despertar por reed y acelerómetro, para la autonomía.
-- **Dos formas de que el formato v1 se quede corto** (hay que cambiarlo en los tres repos a la vez):
-  - Tiene un solo campo de temperatura, pero el BOM trae dos TMP117 para detectar fallas o manipulación. Falta decidir qué se reporta y cómo se marca el desacuerdo (los bits 5–7 de `flags` están libres; 0x08 y 0x10 se usan para eventos de apertura, documentados en `READING_FORMAT.md`).
-  - No hay un bit de "fix de GPS válido": sin fix se reutiliza la última posición conocida.
-- **Apertura, falta:** compilar y probar BLE/e-paper/cerradura en hardware (hoy solo se revisó la sintaxis); driver real de la e-paper y dibujo del QR; nonce del TRNG del ATECC608B en vez de `esp_fill_random()`; eventos en el chaincode para aperturas otorgadas/denegadas y detección de apertura forzada (lado Pharmatrace). El backend y la app Android ya existen en Pharmatrace.
-- **Hora:** sin hora válida (GPS o RTC sincronizado) no se emite nada.
+- **Compilar y probar en hardware.** Nada del código de ESP32 se compiló con las librerías reales.
+- **Lado de la app del relevo**: vinculación, hora y posición, subida de lecturas.
+- **Calibrar los umbrales del precinto** con una caja real, y decidir si el sensor de presión justifica sus falsos
+  positivos.
+- **Flash encryption y secure boot**, porque la clave ahora vive en la flash.
+- **Persistir la cola en flash** (LittleFS): vive en RAM y se pierde al reiniciar.
+- **Deep sleep** entre muestras, despertando con el botón y el acelerómetro. Hoy el loop nunca duerme.
+- **RTC** (DS3231 o similar) para mantener la hora entre reinicios.
+- **El formato v1 se queda corto** en dos cosas que exigen cambiar todos los repos a la vez: no puede decir «sin
+  dato de temperatura» ni «posición del celular / sin posición».
+- **Bloqueo por un tercero**: tres tokens inválidos de cualquiera en alcance de BLE bloquean el QR hasta volver a
+  apretar el botón (ver `docs/unlock-protocol.md`).
 
 ## Relación con Pharmatrace
 
-[Pharmatrace](https://github.com/gastonhp1/Pharmatrace) es ahora la versión sobre **Hyperledger Fabric**: chaincode en Go, red local de 4 organizaciones, API Express sobre Fabric Gateway y la carpeta `iot/`. La versión Solidity/Hardhat quedó en [Pharmatrace-evm](https://github.com/gastonhp1/Pharmatrace-evm). Este repo es aparte porque el ciclo de build, flasheo y versionado del firmware es independiente.
-
-Alrededor de la caja:
-
 | Repo | Rol para la PharmaBox |
 |---|---|
-| [Pharmatrace](https://github.com/gastonhp1/Pharmatrace) | Gateway que verifica y ancla las lecturas (`/api/iot`) y backend de apertura (`/api/box`): usuarios, política de quién puede abrir, auditoría y firma del token. Ver `iot/docs/BOX_UNLOCK.md` ahí |
-| [PharmaTrace-mobile](https://github.com/gastonhp1/PharmaTrace-mobile) | App Android: escanea el QR, le pide un token al backend y lo escribe por BLE. Sus UUIDs, códigos de resultado y tamaño de token se compararon contra el código de este firmware; lo que espera de la caja está en [`docs/unlock-protocol.md`](docs/unlock-protocol.md). No probada con una caja real |
+| [Pharmatrace](https://github.com/gastonhp1/Pharmatrace) | Red y chaincode de Hyperledger Fabric, el gateway que verifica y ancla las lecturas (`/api/iot`) y el backend de apertura (`/api/box`). Su `iot/hardware/BOM.md` y su `iot/docs/BOX_UNLOCK.md` todavía describen el hardware v1 |
+| [PharmaTrace-mobile](https://github.com/gastonhp1/PharmaTrace-mobile) | App Android: escanea el QR, le pide un token al backend y lo escribe por BLE. Sus UUIDs, códigos de resultado y tamaño de token coinciden con este firmware. Todavía no implementa el relevo |
 | [PharmaTrace-UI](https://github.com/gastonhp1/PharmaTrace-UI) | UI web sobre la misma API REST. No habla con la caja |
+| [Pharmatrace-evm](https://github.com/gastonhp1/Pharmatrace-evm) | La versión anterior en Solidity/Hardhat |
 
-Última verificación cruzada con estos repos: 2026-11-15. El formato de lectura y el token de apertura no cambiaron; el backend sumó la regla «caja desactivada: solo el regulador» y `GET /api/box/unlock-key`.
+Última verificación cruzada con estos repos: 2026-11-15.

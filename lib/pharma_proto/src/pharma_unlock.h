@@ -77,18 +77,19 @@ class UnlockSession {
   UnlockSession(const char* deviceId, Sha256Fn sha256, VerifyFn verify, void* verifyCtx,
                 uint32_t challengeTtlMs = 120000, uint8_t maxAttempts = 3);
 
-  // `nonce` tiene que venir de un generador aleatorio de verdad (TRNG del ATECC608B).
+  // `nonce` tiene que venir de un generador aleatorio de verdad (esp_fill_random() con la radio encendida).
   bool begin(const uint8_t nonce[NONCE_SIZE], uint32_t nowMs);
   void end();
   bool active(uint32_t nowMs) const;
 
-  // `timeValid` dice si `nowUnix` viene de un GPS/RTC sincronizado. Sin hora válida no se mira
+  // `timeValid` dice si `nowUnix` viene de un reloj sincronizado (pharma_clock.h). Sin hora válida no se mira
   // `exp`: la frescura la da el nonce, que la caja generó hace instantes y nadie puede adivinar.
   UnlockResult handle(const uint8_t* token, size_t len, uint32_t nowMs, bool timeValid,
                       uint32_t nowUnix);
 
   const uint8_t* nonce() const { return nonce_; }
   const uint8_t* actor() const { return actor_; }  // actor del último desbloqueo exitoso
+  uint32_t issuedAt() const { return issuedAt_; }  // `iat` del último token válido: hora firmada por el backend
 
  private:
   enum class State : uint8_t { Idle, Active, Used, LockedOut };
@@ -108,6 +109,7 @@ class UnlockSession {
   uint8_t devTag_[DEVICE_TAG_SIZE] = {0};
   uint8_t nonce_[NONCE_SIZE] = {0};
   uint8_t actor_[ACTOR_SIZE] = {0};
+  uint32_t issuedAt_ = 0;
 };
 
 }  // namespace pharma

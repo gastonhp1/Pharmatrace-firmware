@@ -13,14 +13,14 @@ token. El celular se lo pasa a la caja por Bluetooth; la caja verifica la firma 
 ```
  PharmaBox                       Celular (app)                    Backend Pharmatrace
     │  botón → nonce nuevo            │                                   │
-    │  e-paper: QR "PB1:id:nonce"     │                                   │
+    │  pantalla: QR "PB1:id:nonce"    │                                   │
     │ ◄──────── escanea el QR ────────│                                   │
     │                                 │── POST /api/box/unlock ──────────►│ ¿quién es? ¿puede abrir
     │                                 │   {deviceId, nonce}  (con sesión) │  este lote en este estado?
     │                                 │◄───────── token firmado ──────────│ audita (otorgado/denegado)
     │◄── BLE: escribe token ──────────│                                   │
     │  verifica firma, caja, nonce    │                                   │
-    │  abre el pestillo               │                                   │
+    │  habilita abrir el precinto     │                                   │
     │── BLE notify: resultado ───────►│                                   │
     │  próxima lectura con flag       │                                   │
     │  UNLOCK_GRANTED (0x08)          │                                   │
@@ -63,8 +63,11 @@ El nonce son 16 bytes aleatorios generados al apretar el botón; vive 120 s y si
 | `unlock` | `e7cd3dce-1611-4770-beb3-8d88cb840550` | escritura: el token de 106 bytes |
 | `status` | `71b4af6b-3c8f-4880-96e3-df64ba0b4459` | lectura + notificación: 1 byte, código de resultado |
 
-La caja solo anuncia el servicio mientras hay un QR vigente. Un token de 106 bytes necesita MTU ≥ 109 o
-escritura larga; NimBLE y los celulares modernos lo manejan, pero **no se probó con hardware**.
+La caja se anuncia siempre (el celular vinculado tiene que poder reconectarse, ver
+[companion-protocol.md](companion-protocol.md)), pero un token solo sirve mientras hay un QR vigente: sin QR la
+respuesta es `NoChallenge` y no gasta intentos. Un token de 106 bytes necesita MTU ≥ 109 o escritura larga; NimBLE
+y los celulares modernos lo manejan, pero **no se probó con hardware**. Este servicio no pide vinculación: el token
+ya viene firmado por el backend.
 
 ## Token (106 bytes, big-endian)
 
@@ -89,11 +92,22 @@ tiene solo la pública (`include/unlock_key.h`).
 3. `dev` corresponde a esta caja → `WrongBox`.
 4. `nonce` es el que está en pantalla (comparación en tiempo constante) → `BadNonce`.
 5. Firma válida con la clave pública del backend → `BadSignature`.
-6. Si la caja tiene hora válida (GPS/RTC), `exp` no venció → `Expired`. Sin hora válida no se mira `exp`: la
+6. Si la caja tiene hora válida, `exp` no venció → `Expired`. Sin hora válida no se mira `exp`: la
    frescura la da el nonce.
 
-Éxito: el nonce queda consumido (un token sirve una vez), se energiza el solenoide y la próxima lectura sale con
-`FLAG_UNLOCK_GRANTED`. Tres fallos y la caja exige un QR nuevo (botón).
+Éxito: el nonce queda consumido (un token sirve una vez) y pasan tres cosas:
+
+- **Se habilita abrir el precinto** durante 10 minutos. La caja ya no tiene cerradura: «abrir» es poder soltar el
+  cinto sin que cuente como violación. Si la apertura empieza dentro de ese plazo, la caja queda en «abierta
+  (autorizada)» el tiempo que haga falta y se vuelve a precintar sola al cerrarla. El permiso sirve para una
+  apertura. Soltar el cinto, aflojarlo, desconectar la sonda o que entre luz **sin** un token previo deja la caja
+  en «precinto violado» (`SEAL_BROKEN` en cada lectura) hasta el próximo token válido. La lógica está en
+  `lib/pharma_proto/src/pharma_seal.h`.
+- **Se sincroniza el reloj** con el `iat` del token, que firmó el backend. Sin GPS, es la fuente de hora más
+  confiable que tiene la caja.
+- La próxima lectura sale con `FLAG_UNLOCK_GRANTED`.
+
+Tres fallos y la caja exige un QR nuevo (botón).
 
 | Código | Nombre |
 |---:|---|
@@ -135,8 +149,8 @@ resultado 0 a 7 y tamaño del token se compararon contra `BoxProtocol.kt`):
 - Escribe con respuesta, se suscribe a `status` y espera la notificación hasta 8 s; si no llega, lee `status`.
 - Antes de escribir revisa el token (largo, versión, vida, caja, nonce): así un token malo no gasta uno de los 3
   intentos de la caja.
-- Si la conexión se cae, reintenta mientras el QR siga vigente: por eso la caja vuelve a anunciarse al
-  desconectarse un cliente (`keepAdvertising()`).
+- Si la conexión se cae, reintenta mientras el QR siga vigente: la caja se anuncia siempre, así que la
+  vuelve a encontrar.
 
 Todo esto contra el código, no contra una caja real: ni la app ni el firmware se probaron todavía en BLE de verdad.
 
@@ -159,15 +173,20 @@ Sigue pendiente:
 - **Ataque de relevo**: alguien con permiso podría escanear el QR de una caja que no tiene delante (una foto) y
   abrirla a distancia con un cómplice cerca. Mitigaciones: nonce de 120 s, un solo uso, 3 intentos; BLE tiene
   alcance corto; para más garantía, exigir que el celular esté cerca (RSSI) o agregar un PIN en pantalla.
-- La cerradura electrónica **no es seguridad física**: una caja abierta a la fuerza queda registrada, no evitada.
+- El precinto **no es seguridad física**: el telgopor se corta con un cúter. Una apertura forzada queda
+  registrada, no evitada.
+- Un `SEAL_BROKEN` deja el cargamento `COMPROMISED` en el acto. Un falso positivo (cinto flojo, sensor de presión
+  mal calibrado) cuesta un cargamento: los umbrales de `SealConfig` hay que ajustarlos con la caja real.
+- Después de un corte de energía la caja arranca sin hora y, si el cinto está suelto, en «violado». Lo que pasó
+  durante el corte no se ve; sí se ve el hueco en las lecturas.
 - **Bloqueo por un tercero**: cualquiera dentro del alcance de BLE puede escribir tres tokens inválidos y dejar la
   caja en `LockedOut` hasta que alguien apriete el botón. Hoy cuentan como intento todos los rechazos, incluso
   los de formato, caja o nonce, que no requieren conocer nada. Idea: que solo cuenten como intento los rechazos
   posteriores a un nonce correcto (adivinar una firma sí exige el QR). Cambiaría la semántica que asume la app
   («cada rechazo gasta un intento»), así que se deja anotado.
 - El celular necesita internet en el momento de abrir.
-- El nonce sale de `esp_fill_random()` con BLE encendido; falta pasarlo al TRNG del ATECC608B.
-- Todo lo de BLE, e-paper, cerradura y ATECC608B es **código sin probar en hardware**.
+- El nonce sale de `esp_fill_random()`, que es aleatorio de verdad solo con la radio encendida (BLE lo está).
+- Todo lo de BLE, pantalla, sensores y precinto es **código sin probar en hardware**.
 
 ## Probar sin app ni pantalla
 
@@ -177,5 +196,6 @@ python3 tools/unlock_token.py gen-key clave.pem         # imprime la pública �
 python3 tools/unlock_token.py sign clave.pem "PB1:VAL-001:<nonce del QR>"   # token en hex
 ```
 
-Con la caja corriendo, el QR aparece por serie (`[display] QR: …`). Pegar el token hex en la característica
+Con la caja corriendo, el QR aparece en la pantalla y también por serie (`[display] QR: …`) si se compila sin
+LovyanGFX. Pegar el token hex en la característica
 `unlock` con nRF Connect y leer el resultado en `status`.

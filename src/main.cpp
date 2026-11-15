@@ -1,87 +1,145 @@
-// Nodo de la PharmaBox: sensa, firma cada lectura con el ATECC608B y la sube al gateway.
+// PharmaBox v2: módulo sobre la tapa de la caja, sujeto por un cinto que hace de precinto.
 //
-// Flujo: muestrear -> armar el payload de 21 bytes -> SHA-256 -> firma P-256 -> cola -> POST
-// /api/iot/readings. El nodo NO habla con Fabric: el gateway (backend/ de Pharmatrace) verifica
-// la firma y ancla una raíz de Merkle por ventana en el ledger.
+//   sonda interna -> temperatura, humedad y luz        cinto -> lazo + presión (precinto)
+//   cada minuto: lectura de 21 bytes -> SHA-256 -> firma P-256 por software -> cola
+//   el celular vinculado por BLE pone hora y posición, y sube las lecturas al gateway
+//   abrir = token firmado por el backend (QR + BLE): habilita romper el precinto sin que cuente
+//           como violación
 //
-// ESTADO: esqueleto. La lógica del protocolo (lib/pharma_proto) está probada en la PC. Los
-// drivers de sensores, el ATECC608B y el módem son TODO, y todo lo de Arduino/ESP32 de este
-// archivo todavía NO se compiló ni se probó en hardware.
+// La caja NO habla con Fabric ni con internet: el gateway (backend/ de Pharmatrace) verifica la
+// firma de cada lectura y ancla una raíz de Merkle por ventana en el ledger.
+//
+// ESTADO: la lógica (lib/pharma_proto, p256_soft, verifier_mbedtls) está probada en la PC. Todo lo
+// de Arduino/ESP32 de este archivo y de sensors/ble_box/display NO se compiló con las librerías
+// reales ni se probó en hardware.
 
 #include <Arduino.h>
 #include <Preferences.h>
-#include <Wire.h>
-
 #include <esp_random.h>
 
 #include <atomic>
 
-#include "ble_unlock.h"
+#include "ble_box.h"
 #include "config.h"
 #include "display.h"
-#include "lock.h"
+#include "pharma_clock.h"
 #include "pharma_ingest.h"
 #include "pharma_queue.h"
 #include "pharma_reading.h"
+#include "pharma_seal.h"
 #include "pharma_unlock.h"
 #include "secrets.h"
+#include "sensors.h"
 #include "signer.h"
 #include "unlock_key.h"
-#include "uplink.h"
 #include "verifier_mbedtls.h"
+
+#ifdef BENCH_WIFI_UPLINK
+#include "uplink.h"
+static UplinkWifi uplink;  // solo banco de pruebas: sube directo a un gateway de la LAN
+static uint32_t lastUploadMs = 0;
+#endif
 
 using namespace pharma;
 
 static ReadingQueue<QUEUE_CAPACITY> queue;
 static Preferences prefs;
-static Atecc608Signer signer;
-static UplinkWifi uplink;  // banco de pruebas; el transporte real es el módem (ver uplink.h)
+static Signer signer;
+static bool signerReady = false;
+static BoxClock boxClock;
+static SealMonitor seal;
+static Display& display = boxDisplay();
 
-static SerialDisplay display;  // TODO(hw): reemplazar por la e-paper
-static Lock lock;
 static MbedtlsVerifier unlockVerifier;
 static UnlockSession unlockSession(DEVICE_ID, sha256Mbedtls, MbedtlsVerifier::verifyThunk,
                                    &unlockVerifier, UNLOCK_CHALLENGE_TTL_MS, UNLOCK_MAX_ATTEMPTS);
 static bool unlockReady = false;  // clave de apertura válida cargada
+static bool challengeShown = false;
+static uint32_t pairingPin = 0;
 
-// El botón solo levanta una bandera; el trabajo se hace en loop().
+// Las interrupciones solo levantan banderas; el trabajo se hace en loop().
 static volatile bool buttonPressed = false;
+static volatile bool shockSeen = false;
+static std::atomic<uint8_t> pendingFlags{0};  // eventos a reportar en la próxima lectura
 static void IRAM_ATTR onButtonInterrupt() { buttonPressed = true; }
-
-// Eventos latcheados por interrupción entre dos muestras: se reportan en la siguiente lectura.
-static std::atomic<uint8_t> pendingFlags{0};
+static void IRAM_ATTR onShockInterrupt() {
+  pendingFlags.fetch_or(FLAG_SHOCK);
+  shockSeen = true;
+}
 
 static uint32_t lastTs = 0;  // última `ts` emitida: el gateway exige ts estrictamente creciente
-static int32_t lastLatE5 = 0;
+static int32_t lastLatE5 = 0;  // última posición que mandó el celular (0,0 si nunca mandó)
 static int32_t lastLonE5 = 0;
 static uint32_t lastSampleMs = 0;
-static uint32_t lastUploadMs = 0;
+static uint32_t lastSealPollMs = 0;
+static bool sampleNow = false;  // adelantar la muestra: algo importante acaba de pasar
 
-static void IRAM_ATTR onLidInterrupt() { pendingFlags.fetch_or(FLAG_LID_OPENED); }
-static void IRAM_ATTR onShockInterrupt() { pendingFlags.fetch_or(FLAG_SHOCK); }
+static bool haveReading = false;  // última medición, para la pantalla y el celular
+static int16_t lastTempCenti = 0;
+static uint16_t lastHumCenti = 0;
+
+static bool displayOn = false;
+static uint32_t displayOnMs = 0;
+static size_t relayInFlight = 0;  // lecturas mandadas al celular esperando su confirmación
 
 // ---------------------------------------------------------------------------------------------
-// TODO(hw): drivers. Cada uno devuelve false si no hay dato válido; en ese caso se saltea la
-// muestra en vez de inventar un valor.
+// Avisos
 // ---------------------------------------------------------------------------------------------
 
-// Hora Unix de un GPS con fix o de un RTC sincronizado. Sin hora válida no se emite nada.
-static bool readUnixTime(uint32_t&) { return false; }
+static uint8_t beepsLeft = 0;
+static bool beepOn = false;
+static uint32_t beepMs = 0;
 
-// TMP117 principal (0x48). El 2.º (0x49) es para comparar y detectar fallas o manipulación,
-// pero el formato v1 tiene un solo campo de temperatura: ver "Pendiente" en el README.
-static bool readTemperatureC(float&) { return false; }
+static void beep(uint8_t times) { beepsLeft = times; }
 
-// SHT45 (0x44).
-static bool readHumidityPercent(float&) { return false; }
+static void serviceBuzzer(uint32_t nowMs) {
+  if (!beepOn && beepsLeft == 0) return;
+  if (uint32_t(nowMs - beepMs) < 150) return;
+  beepMs = nowMs;
+  beepOn = !beepOn;
+  digitalWrite(PIN_BUZZER, beepOn ? HIGH : LOW);
+  if (!beepOn) beepsLeft--;
+}
 
-// Posición del GPS. Si no hay fix se reutiliza la última conocida (el formato no tiene un bit
-// de "fix válido").
-static bool readPosition(double&, double&) { return false; }
+static StatusView statusView() {
+  StatusView v;
+  v.haveReading = haveReading;
+  v.tempCenti = lastTempCenti;
+  v.humCenti = lastHumCenti;
+  v.seal = seal.state();
+  v.batteryPercent = sensors::batteryPercent();
+  v.queued = uint16_t(queue.size());
+  v.clockValid = boxClock.valid();
+  v.phoneLinked = ble_box::phoneLinked();
+  v.pairingPin = pairingPin;
+  return v;
+}
 
-// Sello roto (NFC/NTAG 424 DNA o microswitch). Es persistente, a diferencia de tapa y golpe.
-static bool sealIsBroken() { return false; }
+static void show(const char* message, uint32_t nowMs) {
+  display.showMessage(message, statusView());
+  displayOn = true;
+  displayOnMs = nowMs;
+}
 
+// Estado para el celular: tempCenti i16, humCenti u16, estado u8, batería u8, en cola u16.
+// estado: bits 0-1 precinto (0 precintada, 1 abierta autorizada, 2 violada), bit 2 hora válida,
+// bit 3 hay medición.
+static void publishBoxStatus() {
+  uint8_t s[ble_box::BOX_STATUS_SIZE];
+  const uint16_t queued = uint16_t(queue.size());
+  s[0] = uint8_t(uint16_t(lastTempCenti) >> 8);
+  s[1] = uint8_t(lastTempCenti);
+  s[2] = uint8_t(lastHumCenti >> 8);
+  s[3] = uint8_t(lastHumCenti);
+  s[4] = uint8_t(uint8_t(seal.state()) | (boxClock.valid() ? 0x04 : 0) | (haveReading ? 0x08 : 0));
+  s[5] = sensors::batteryPercent();
+  s[6] = uint8_t(queued >> 8);
+  s[7] = uint8_t(queued);
+  ble_box::setBoxStatus(s);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Lecturas
 // ---------------------------------------------------------------------------------------------
 
 // Reserva el próximo `seq` ANTES de usarlo y lo persiste: si el equipo se reinicia justo
@@ -93,45 +151,39 @@ static uint32_t reserveSeq() {
   return seq;
 }
 
-static bool sha256(const uint8_t* data, size_t len, uint8_t out[DIGEST_SIZE]) {
-  return sha256Mbedtls(data, len, out);
-}
-
 static void skip(const char* why) { Serial.printf("[sample] %s, se saltea\n", why); }
 
-static void sampleOnce() {
-  uint32_t ts = 0;
+static void sampleOnce(uint32_t nowMs) {
   float tempC = 0, humPct = 0;
-  if (!readUnixTime(ts)) return skip("sin hora válida");
-  if (ts <= lastTs) return skip("el reloj no avanzó");
-
   int16_t tempCenti = 0;
   uint16_t humCenti = 0;
-  if (!readTemperatureC(tempC) || !tempToCenti(tempC, tempCenti)) {
-    return skip("temperatura inválida");
+  // Sin sonda no hay temperatura que firmar, y el formato v1 no tiene cómo decir "sin dato": no
+  // se inventa un valor. La violación no se pierde: el precinto queda en "violada" y el flag sale
+  // en la primera lectura que se pueda emitir.
+  if (!sensors::readTempHumidity(tempC, humPct)) {
+    haveReading = false;
+    return skip("la sonda no responde");
   }
-  if (!readHumidityPercent(humPct) || !humidityToCenti(humPct, humCenti)) {
-    return skip("humedad inválida");
+  if (!tempToCenti(tempC, tempCenti) || !humidityToCenti(humPct, humCenti)) {
+    return skip("medición fuera de rango");
   }
+  haveReading = true;
+  lastTempCenti = tempCenti;
+  lastHumCenti = humCenti;
 
-  double lat = 0, lon = 0;
-  int32_t latE5 = 0, lonE5 = 0;
-  if (readPosition(lat, lon) && latitudeToE5(lat, latE5) && longitudeToE5(lon, lonE5)) {
-    lastLatE5 = latE5;
-    lastLonE5 = lonE5;
-  }
+  if (!signerReady) return skip("sin clave de firma");
+  uint32_t ts = 0;
+  if (!boxClock.now(nowMs, ts)) return skip("sin hora: abrir con la app o vincular el celular");
+  if (ts <= lastTs) return skip("el reloj no avanzó");
 
   const uint8_t seen = pendingFlags.load();
-  uint8_t flags = seen;
-  if (sealIsBroken()) flags |= FLAG_SEAL_BROKEN;
-
-  Reading r{ts, 0, tempCenti, humCenti, flags, lastLatE5, lastLonE5};
+  Reading r{ts, 0, tempCenti, humCenti, uint8_t(seen | seal.stateFlags()), lastLatE5, lastLonE5};
   r.seq = reserveSeq();
 
   SignedReading sr;
   encodeReading(r, sr.payload);
   uint8_t digest[DIGEST_SIZE];
-  if (!sha256(sr.payload, READING_SIZE, digest) || !signer.signDigest(digest, sr.signature)) {
+  if (!sha256Mbedtls(sr.payload, READING_SIZE, digest) || !signer.signDigest(digest, sr.signature)) {
     return skip("no se pudo firmar (se pierde la lectura)");
   }
 
@@ -143,33 +195,35 @@ static void sampleOnce() {
                 (unsigned)queue.size());
 }
 
-static void note(const char* msg) { Serial.printf("[upload] %s\n", msg); }
+// ---------------------------------------------------------------------------------------------
+// Precinto
+// ---------------------------------------------------------------------------------------------
 
-static void uploadPending() {
-  static SignedReading batch[UPLOAD_BATCH_MAX];
-  static char body[ingestJsonSize(sizeof(DEVICE_ID) - 1, UPLOAD_BATCH_MAX)];
-  static char response[160];
+static void serviceSeal(uint32_t nowMs) {
+  if (uint32_t(nowMs - lastSealPollMs) < SEAL_POLL_MS) return;
+  lastSealPollMs = nowMs;
 
-  const size_t n = queue.peek(batch, UPLOAD_BATCH_MAX);
-  const size_t len = buildIngestJson(DEVICE_ID, batch, n, body, sizeof body);
-  if (len == 0) return note("no se pudo armar el JSON (revisar DEVICE_ID)");
+  SealInputs in{};
+  in.loopMv = sensors::loopMv();
+  in.fsrMv = sensors::fsrMv();
+  in.probePresent = sensors::probePresent();
+  uint16_t lux = 0;
+  in.lux = (in.probePresent && sensors::readLux(lux)) ? lux : 0;
 
-  int status = 0;
-  if (!uplink.postJson(INGEST_PATH, body, len, status, response, sizeof response)) {
-    return note("sin conexión, se reintenta más tarde");
-  }
+  const SealState before = seal.state();
+  const uint8_t events = seal.update(in, nowMs);
+  if (events != 0) pendingFlags.fetch_or(events);
+  if (seal.state() == before && events == 0) return;
 
-  if (status == 200) {
-    // accepted, duplicates y rejected son definitivos: reenviar una lectura rechazada la
-    // rechazaría otra vez. Un duplicado exacto no es error, así que reintentar es seguro.
-    queue.pop(n);
-    Serial.printf("[upload] 200, %u lecturas confirmadas, quedan %u. %s\n", (unsigned)n,
-                  (unsigned)queue.size(), response);
-  } else {
-    // 409: la valija no está monitoreando ningún cargamento todavía. 403: no está operativa.
-    // 400: error nuestro. En todos los casos las lecturas se conservan.
-    Serial.printf("[upload] HTTP %d, se conservan %u lecturas. %s\n", status,
-                  (unsigned)queue.size(), response);
+  sampleNow = true;  // que el cambio quede firmado cuanto antes
+  if (seal.state() == SealState::Breached && before != SealState::Breached) {
+    Serial.printf("[seal] VIOLADO lazo=%u mV presion=%u mV sonda=%d lux=%u\n", in.loopMv, in.fsrMv,
+                  in.probePresent, in.lux);
+    beep(5);
+    show("PRECINTO VIOLADO", nowMs);
+  } else if (seal.state() == SealState::Sealed && before == SealState::AuthorizedOpen) {
+    beep(1);
+    show("Precintada", nowMs);
   }
 }
 
@@ -177,116 +231,208 @@ static void uploadPending() {
 // Apertura autenticada (docs/unlock-protocol.md)
 // ---------------------------------------------------------------------------------------------
 
-static bool challengeShown = false;
-
 static void endChallenge() {
   unlockSession.end();
-  ble_unlock::stopAdvertising();
   challengeShown = false;
 }
 
-// Botón -> nonce nuevo -> QR en pantalla -> BLE visible.
+// Botón -> nonce nuevo -> QR en pantalla.
 static void startChallenge(uint32_t nowMs) {
-  if (!unlockReady) return display.showMessage("Apertura no disponible");
-  // El nonce sale de esp_fill_random(): es aleatorio de verdad solo con BLE/WiFi encendidos
-  // (BLE ya está inicializado en setup()). TODO(hw): usar el TRNG del ATECC608B.
+  if (!unlockReady) return show("Apertura no disponible", nowMs);
+  // esp_fill_random() es aleatorio de verdad con la radio encendida (BLE se inicia en setup()).
   uint8_t nonce[NONCE_SIZE];
   esp_fill_random(nonce, sizeof nonce);
   char qr[QR_PAYLOAD_MAX];
   if (!unlockSession.begin(nonce, nowMs) || buildQrPayload(DEVICE_ID, nonce, qr, sizeof qr) == 0) {
-    return display.showMessage("Error al generar el QR");
+    return show("Error al generar el QR", nowMs);
   }
-  display.showQr(qr);
-  ble_unlock::startAdvertising();
+  display.showQr(qr, statusView());
+  displayOn = true;
+  displayOnMs = nowMs;
   challengeShown = true;
 }
 
 static void serviceUnlock(uint32_t nowMs) {
-  lock.update(nowMs);
-
   if (buttonPressed) {
     buttonPressed = false;
     if (!challengeShown) startChallenge(nowMs);  // con un QR vigente, otro toque no hace nada
   }
 
-  if (challengeShown) ble_unlock::keepAdvertising();
-
   // El QR venció sin que nadie lo usara.
   if (challengeShown && !unlockSession.active(nowMs)) {
     endChallenge();
-    display.clear();
+    show("QR vencido", nowMs);
   }
 
-  uint8_t token[ble_unlock::MAX_WRITE];
+  uint8_t token[ble_box::MAX_WRITE];
   size_t len = 0;
-  if (!ble_unlock::takeWrite(token, sizeof token, len)) return;
+  if (!ble_box::takeUnlockWrite(token, sizeof token, len)) return;
 
   uint32_t nowUnix = 0;
-  const bool timeValid = readUnixTime(nowUnix);
+  const bool timeValid = boxClock.now(nowMs, nowUnix);
   const UnlockResult r = unlockSession.handle(token, len, nowMs, timeValid, nowUnix);
-  ble_unlock::notifyResult(r);
+  ble_box::notifyUnlockResult(r);
   Serial.printf("[unlock] resultado=%u\n", (unsigned)r);
 
-  // Cada intento deja huella firmada en la próxima lectura (el ledger la ancla sin interpretarla).
+  // Cada intento deja huella firmada en la próxima lectura.
   if (r == UnlockResult::Ok) {
     pendingFlags.fetch_or(FLAG_UNLOCK_GRANTED);
-    lock.open(nowMs);
-    display.showMessage("Abierta");
+    seal.authorize(nowMs);  // ahora romper el precinto no es una violación
+    // El `iat` del token lo firmó el backend: es la fuente de hora más confiable que tiene la caja.
+    boxClock.set(unlockSession.issuedAt(), nowMs);
     endChallenge();
-    lastSampleMs = nowMs - SAMPLE_INTERVAL_S * 1000UL;  // adelanta la muestra: que quede registrado ya
+    beep(2);
+    show("Podes abrir", nowMs);
+    sampleNow = true;
   } else {
     pendingFlags.fetch_or(FLAG_UNLOCK_REJECTED);
     if (r == UnlockResult::LockedOut || r == UnlockResult::NoChallenge) {
       endChallenge();
-      display.showMessage("Rechazada");
+      show("Rechazada", nowMs);
     }
   }
 }
 
-void setup() {
-  Serial.begin(115200);
-  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-  prefs.begin("pharma", false);
+// ---------------------------------------------------------------------------------------------
+// Celular vinculado: hora, posición y relevo de lecturas (docs/companion-protocol.md)
+// ---------------------------------------------------------------------------------------------
 
-  pinMode(PIN_LID_REED, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_LID_REED), onLidInterrupt,
-                  LID_OPEN_LEVEL ? RISING : FALLING);
-  pinMode(PIN_ACCEL_INT, INPUT);
-  attachInterrupt(digitalPinToInterrupt(PIN_ACCEL_INT), onShockInterrupt, RISING);
+static void serviceCompanion(uint32_t nowMs) {
+  ble_box::keepAdvertising();
 
-  uplink.begin();
-
-  lock.begin();
-  display.begin();
-  pinMode(PIN_UNLOCK_BUTTON, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_UNLOCK_BUTTON), onButtonInterrupt, FALLING);
-  unlockReady = unlockVerifier.begin(UNLOCK_PUBKEY);
-  if (!unlockReady) Serial.println("[boot] clave de apertura inválida (include/unlock_key.h): la caja no se puede abrir");
-  ble_unlock::begin(DEVICE_ID);
-
-  if (!signer.begin()) {
-    Serial.println("[boot] ATECC608B no disponible: no se puede firmar, no se emitirá nada");
-    return;
+  if (ble_box::takeLinkLost()) {
+    relayInFlight = 0;  // lo que no se confirmó se vuelve a mandar
+    if (ALERT_ON_LINK_LOSS && seal.state() == SealState::Sealed) {
+      beep(3);
+      show("Celular fuera de alcance", nowMs);
+    }
   }
-  // La pública es lo que se registra en el ledger: POST /api/iot/devices { deviceId, pubKey, ... }
-  uint8_t pub[PUBLIC_KEY_SIZE];
-  char hex[2 + 2 * PUBLIC_KEY_SIZE + 1];
-  if (signer.publicKey(pub) && toHex(pub, sizeof pub, hex, sizeof hex)) {
-    Serial.printf("[boot] deviceId=%s pubKey=%s\n", DEVICE_ID, hex);
+
+  uint32_t unixTime = 0;
+  int32_t latE5 = 0, lonE5 = 0;
+  if (ble_box::takeTimePos(unixTime, latE5, lonE5)) {
+    // Un celular vinculado puede poner la hora si la caja no la tiene, o corregir hasta 5 minutos
+    // hacia adelante. Saltos mayores solo con un token firmado por el backend.
+    uint32_t now = 0;
+    if (!boxClock.now(nowMs, now) || (unixTime >= now && unixTime - now <= 300)) {
+      boxClock.set(unixTime, nowMs);
+    }
+    if (latE5 >= -9000000 && latE5 <= 9000000 && lonE5 >= -18000000 && lonE5 <= 18000000) {
+      lastLatE5 = latE5;
+      lastLonE5 = lonE5;
+    }
+  }
+
+  // Relevo por pedido: el celular escribe `ack` con cuántas lecturas de la tanda anterior subió
+  // bien (0 la primera vez); la caja las descarta y manda la tanda siguiente.
+  uint16_t acked = 0;
+  if (ble_box::takeAck(acked)) {
+    queue.pop(acked < relayInFlight ? acked : relayInFlight);
+    relayInFlight = 0;
+    static SignedReading batch[RELAY_BATCH_MAX];
+    const size_t n = queue.peek(batch, RELAY_BATCH_MAX);
+    for (size_t i = 0; i < n; i++) {
+      uint8_t frame[ble_box::READING_FRAME];
+      memcpy(frame, batch[i].payload, READING_SIZE);
+      memcpy(frame + READING_SIZE, batch[i].signature, SIGNATURE_SIZE);
+      if (!ble_box::sendReading(frame)) break;
+      relayInFlight++;
+    }
+    publishBoxStatus();
   }
 }
 
-void loop() {
-  const uint32_t nowMs = millis();  // la resta sin signo tolera el desborde de millis()
+#ifdef BENCH_WIFI_UPLINK
+static void uploadPending() {
+  static SignedReading batch[UPLOAD_BATCH_MAX];
+  static char body[ingestJsonSize(sizeof(DEVICE_ID) - 1, UPLOAD_BATCH_MAX)];
+  static char response[160];
 
-  serviceUnlock(nowMs);
+  const size_t n = queue.peek(batch, UPLOAD_BATCH_MAX);
+  const size_t len = buildIngestJson(DEVICE_ID, batch, n, body, sizeof body);
+  if (len == 0) return;
+  int status = 0;
+  if (!uplink.postJson(INGEST_PATH, body, len, status, response, sizeof response)) return;
+  // 200: accepted, duplicates y rejected son definitivos. 409 (no monitorea ningún cargamento),
+  // 403 (no operativa) y 400: las lecturas se conservan.
+  if (status == 200) queue.pop(n);
+  Serial.printf("[upload] HTTP %d, quedan %u. %s\n", status, (unsigned)queue.size(), response);
+}
+#endif
 
-  if (nowMs - lastSampleMs >= SAMPLE_INTERVAL_S * 1000UL) {
-    lastSampleMs = nowMs;
-    sampleOnce();
+// ---------------------------------------------------------------------------------------------
+
+void setup() {
+  Serial.begin(115200);
+  prefs.begin("pharma", false);
+
+  pinMode(PIN_BUZZER, OUTPUT);
+  digitalWrite(PIN_BUZZER, LOW);
+  pinMode(PIN_BUTTON, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_BUTTON), onButtonInterrupt, FALLING);
+
+  sensors::begin();
+  if (sensors::accelBegin()) {
+    pinMode(PIN_ACCEL_INT, INPUT);
+    attachInterrupt(digitalPinToInterrupt(PIN_ACCEL_INT), onShockInterrupt, RISING);
+  } else {
+    Serial.println("[boot] LIS3DH no responde: no se detectan golpes");
   }
-  if (!queue.empty() && nowMs - lastUploadMs >= UPLOAD_INTERVAL_S * 1000UL) {
+  display.begin();
+
+  // PIN de vinculación nuevo en cada arranque (los celulares ya vinculados no lo necesitan).
+  pairingPin = esp_random() % 1000000;
+  ble_box::begin(DEVICE_ID, pairingPin);
+
+  unlockReady = unlockVerifier.begin(UNLOCK_PUBKEY);
+  if (!unlockReady) Serial.println("[boot] clave de apertura inválida (include/unlock_key.h)");
+
+  signerReady = signer.begin();  // después de BLE: el generador aleatorio necesita la radio
+  uint8_t pub[PUBLIC_KEY_SIZE];
+  char hex[2 + 2 * PUBLIC_KEY_SIZE + 1];
+  if (signerReady && signer.publicKey(pub) && toHex(pub, sizeof pub, hex, sizeof hex)) {
+    // La pública es lo que se registra en el ledger: POST /api/iot/devices { deviceId, pubKey, ... }
+    Serial.printf("[boot] deviceId=%s pubKey=%s\n", DEVICE_ID, hex);
+  } else {
+    Serial.println("[boot] no hay clave de firma: no se emitirá nada");
+  }
+
+#ifdef BENCH_WIFI_UPLINK
+  uplink.begin();
+#endif
+  show("PharmaBox", millis());
+}
+
+void loop() {
+  const uint32_t nowMs = millis();  // las restas sin signo toleran el desborde de millis()
+  boxClock.tick(nowMs);
+
+  if (shockSeen) {
+    shockSeen = false;
+    sensors::accelClearInt();  // INT1 queda latcheada hasta leerla
+  }
+
+  serviceSeal(nowMs);
+  serviceUnlock(nowMs);
+  serviceCompanion(nowMs);
+  serviceBuzzer(nowMs);
+
+  if (sampleNow || uint32_t(nowMs - lastSampleMs) >= SAMPLE_INTERVAL_S * 1000UL) {
+    sampleNow = false;
+    lastSampleMs = nowMs;
+    sampleOnce(nowMs);
+    publishBoxStatus();
+  }
+
+#ifdef BENCH_WIFI_UPLINK
+  if (!queue.empty() && uint32_t(nowMs - lastUploadMs) >= UPLOAD_INTERVAL_S * 1000UL) {
     lastUploadMs = nowMs;
     uploadPending();
+  }
+#endif
+
+  if (displayOn && !challengeShown && uint32_t(nowMs - displayOnMs) >= DISPLAY_TIMEOUT_MS) {
+    display.off();
+    displayOn = false;
   }
 }

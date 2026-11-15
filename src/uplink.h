@@ -26,5 +26,5 @@ class UplinkWifi : public Uplink {
                 size_t responseCap) override;
 };
 
-// TODO: UplinkModem (A7670 LTE Cat-1 o SIM7080G LTE-M) con TLS. Es el transporte real de la
-// valija. Verificar antes la cobertura de cada tecnología en las rutas reales (BOM.md).
+// El transporte real es el celular vinculado: recibe las lecturas firmadas por BLE (src/ble_box.h)
+// y las sube él. No hace falta confiar en el celular: el gateway verifica la firma de la caja.

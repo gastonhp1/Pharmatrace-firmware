@@ -1,23 +1,42 @@
 #pragma once
-// Pantalla donde se muestra el QR de apertura. La implementación real es una e-paper por SPI
-// (TODO: elegir panel y librería de QR, ver platformio.ini). Mientras tanto, SerialDisplay
-// imprime el texto del QR: alcanza para probar el flujo completo con nRF Connect y la herramienta
-// tools/unlock_token.py, sin pantalla.
+// Pantalla del módulo: muestra el QR de apertura y el estado de la caja.
+//   Ili9488Display  TFT ILI9488 por SPI con LovyanGFX (src/display_ili9488.cpp). Se compila solo
+//                   si la librería está instalada. Sin probar en hardware.
+//   SerialDisplay   imprime lo mismo por serie: alcanza para probar el flujo sin pantalla.
 #include <stdint.h>
+
+#include "pharma_seal.h"
+
+struct StatusView {
+  bool haveReading = false;
+  int16_t tempCenti = 0;
+  uint16_t humCenti = 0;
+  pharma::SealState seal = pharma::SealState::Sealed;
+  uint8_t batteryPercent = 0;
+  uint16_t queued = 0;      // lecturas esperando subir
+  bool clockValid = false;  // sin hora no se emiten lecturas
+  bool phoneLinked = false;
+  uint32_t pairingPin = 0;  // PIN de 6 dígitos para vincular el celular
+};
 
 class Display {
  public:
   virtual ~Display() = default;
   virtual void begin() = 0;
-  virtual void showQr(const char* text) = 0;      // `text` es el contenido del QR
-  virtual void showMessage(const char* text) = 0;  // estado corto: "Abierta", "Rechazada"…
-  virtual void clear() = 0;                        // deja la pantalla sin QR
+  virtual void showQr(const char* qrText, const StatusView& status) = 0;
+  virtual void showMessage(const char* text, const StatusView& status) = 0;
+  virtual void off() = 0;  // apaga la retroiluminación
 };
 
 class SerialDisplay : public Display {
  public:
   void begin() override {}
-  void showQr(const char* text) override;
-  void showMessage(const char* text) override;
-  void clear() override;
+  void showQr(const char* qrText, const StatusView& status) override;
+  void showMessage(const char* text, const StatusView& status) override;
+  void off() override;
 };
+
+const char* sealStateText(pharma::SealState s);
+
+// La pantalla que haya: la TFT si LovyanGFX está instalada, si no la de serie.
+Display& boxDisplay();
