@@ -35,6 +35,8 @@
 #include "verifier_mbedtls.h"
 
 #ifdef BENCH_WIFI_UPLINK
+#include <time.h>
+
 #include "uplink.h"
 static UplinkWifi uplink;  // solo banco de pruebas: sube directo a un gateway de la LAN
 static uint32_t lastUploadMs = 0;
@@ -47,7 +49,12 @@ static Preferences prefs;
 static Signer signer;
 static bool signerReady = false;
 static BoxClock boxClock;
-static SealMonitor seal;
+static SealConfig sealConfig() {
+  SealConfig c;
+  if (!SEAL_USE_FSR) c.fsrMinMv = 0;  // sin sensor de presión: cualquier valor sirve
+  return c;
+}
+static SealMonitor seal(sealConfig());
 static Display& display = boxDisplay();
 
 static MbedtlsVerifier unlockVerifier;
@@ -209,6 +216,16 @@ static void serviceSeal(uint32_t nowMs) {
   in.probePresent = sensors::probePresent();
   uint16_t lux = 0;
   in.lux = (in.probePresent && sensors::readLux(lux)) ? lux : 0;
+
+#ifdef SEAL_DEBUG
+  // Para calibrar los umbrales de SealConfig: una línea por segundo con lo que ve el precinto.
+  static uint32_t lastDebugMs = 0;
+  if (uint32_t(nowMs - lastDebugMs) >= 1000) {
+    lastDebugMs = nowMs;
+    Serial.printf("[seal-debug] lazo=%u mV presion=%u mV sonda=%d lux=%u estado=%u\n", in.loopMv,
+                  in.fsrMv, in.probePresent, in.lux, (unsigned)seal.state());
+  }
+#endif
 
   const SealState before = seal.state();
   const uint8_t events = seal.update(in, nowMs);
@@ -399,6 +416,7 @@ void setup() {
 
 #ifdef BENCH_WIFI_UPLINK
   uplink.begin();
+  configTime(0, 0, "pool.ntp.org");  // en banco la hora sale de NTP: no hace falta token ni celular
 #endif
   show("PharmaBox", millis());
 }
@@ -425,6 +443,10 @@ void loop() {
   }
 
 #ifdef BENCH_WIFI_UPLINK
+  if (!boxClock.valid()) {
+    const time_t t = time(nullptr);  // queda en ~0 hasta que NTP responde
+    if (t > time_t(BoxClock::MIN_VALID_UNIX)) boxClock.set(uint32_t(t), nowMs);
+  }
   if (!queue.empty() && uint32_t(nowMs - lastUploadMs) >= UPLOAD_INTERVAL_S * 1000UL) {
     lastUploadMs = nowMs;
     uploadPending();

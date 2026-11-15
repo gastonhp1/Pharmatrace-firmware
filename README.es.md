@@ -59,6 +59,8 @@ Lo que se resigna, dicho claro:
 - Batería LiPo con cargador/protección, un botón y un buzzer activo
 - Resistencias: 3 × 10 kΩ, 2 × 100 kΩ
 
+El sensor de presión viene desactivado (`SEAL_USE_FSR` en `config.h`): es la parte más propensa a falsas alarmas.
+
 Sin GPS, módem, elemento seguro, cerradura ni medidor de batería.
 
 ## Cableado
@@ -88,7 +90,8 @@ Cosas a tener en cuenta:
 - Los umbrales del precinto (`SealConfig` en `pharma_seal.h`) son estimados. Un «precinto violado» falso deja un
   cargamento `COMPROMISED`, así que hay que calibrarlos con la caja real antes de confiar.
 - Adentro de una caja fría la humedad es alta: usar un SHT4x con filtro de membrana y barnizar la plaquita.
-- La retroiluminación consume 40–80 mA, por eso la pantalla se apaga sola a los 30 s.
+- La retroiluminación consume 40–80 mA, por eso la pantalla se apaga sola a los 30 s. Es más de lo que un GPIO
+  debería entregar: si tu módulo no trae un transistor en el pin LED, manejarla con uno.
 - GPIO39–42 son los pines de JTAG por pines; sirven como GPIO normales mientras se depure por el USB nativo del S3.
   GPIO0/3/45/46 son de strapping, GPIO19/20 son el USB y GPIO35–37 no están en módulos con PSRAM octal.
 - El orden de los pines sale de la guía de usuario de Espressif del DevKitC-1. Verificar contra la serigrafía de tu
@@ -165,7 +168,8 @@ apertura sin la app, pegar el token de `tools/unlock_token.py` en la caracterís
 
 ## Pendiente
 
-- **Compilar y probar en hardware.** Nada del código de ESP32 se compiló con las librerías reales.
+- **Compilar y probar en hardware.** Nada del código de ESP32 se compiló con las librerías reales. Guía paso a
+  paso para el banco en [`docs/prototype-guide.md`](docs/prototype-guide.md).
 - **Lado de la app del relevo**: vinculación, hora y posición, subida de lecturas.
 - **Calibrar los umbrales del precinto** con una caja real, y decidir si el sensor de presión justifica sus falsos
   positivos.

@@ -57,6 +57,8 @@ What this gives up, stated plainly:
 - LiPo battery with charger/protection, a button and an active buzzer
 - Resistors: 3 × 10 kΩ, 2 × 100 kΩ
 
+The pressure sensor is off by default (`SEAL_USE_FSR` in `config.h`): it is the part most prone to false alarms.
+
 No GPS, modem, secure element, lock or fuel gauge.
 
 ## Wiring
@@ -86,7 +88,8 @@ Things to keep in mind:
 - The seal thresholds (`SealConfig` in `pharma_seal.h`) are guesses. A false "seal broken" marks a cargo as
   `COMPROMISED`, so calibrate them on the real box before trusting them.
 - Inside a cold box humidity is high: use an SHT4x with a membrane filter and coat the probe board.
-- The backlight draws 40–80 mA, so the display turns itself off after 30 s.
+- The backlight draws 40–80 mA, so the display turns itself off after 30 s. That is more than a GPIO should
+  source: unless your module has a transistor on its LED pin, drive it through one.
 - GPIO39–42 are the pin-based JTAG pins; they work as plain GPIO as long as you debug over the S3's native USB.
   GPIO0/3/45/46 are strapping pins, GPIO19/20 are the USB, and GPIO35–37 are unavailable on octal PSRAM modules.
 - Pin order comes from Espressif's DevKitC-1 user guide. Check it against your board's silkscreen before soldering.
@@ -162,7 +165,8 @@ paste the token from `tools/unlock_token.py` into the `unlock` characteristic wi
 
 ## To do
 
-- **Build and test on hardware.** None of the ESP32 code has been compiled with the real libraries.
+- **Build and test on hardware.** None of the ESP32 code has been compiled with the real libraries. Step-by-step
+  bench guide in [`docs/prototype-guide.md`](docs/prototype-guide.md) (Spanish).
 - **App side of the relay**: pairing, time/position, uploading readings.
 - **Calibrate the seal thresholds** on a real box, and decide whether the pressure sensor earns its false positives.
 - **Flash encryption and secure boot**, since the key now lives in flash.

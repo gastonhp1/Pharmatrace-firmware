@@ -43,6 +43,11 @@ constexpr int PIN_SEAL_FSR = 6;
 constexpr int PIN_BATTERY = 7;
 
 constexpr uint32_t SEAL_POLL_MS = 100;         // cada cuánto se mira el precinto
+
+// El sensor de presión es la parte del precinto más propensa a falsas alarmas, y una falsa alarma
+// deja el cargamento comprometido. Empezar sin él (solo lazo, sonda y luz) y sumarlo después de
+// calibrarlo con la caja real. Con false, el pin puede quedar sin conectar.
+constexpr bool SEAL_USE_FSR = false;
 constexpr uint32_t DISPLAY_TIMEOUT_MS = 30000;  // pantalla encendida después del último uso
 constexpr bool ALERT_ON_LINK_LOSS = true;       // sonar si el celular vinculado se aleja
 
