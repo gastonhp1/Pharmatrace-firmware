@@ -7,6 +7,7 @@ namespace ble_unlock {
 namespace {
 
 NimBLECharacteristic* statusChr = nullptr;
+NimBLEServer* server = nullptr;
 
 // Una sola escritura pendiente. Se escribe desde la tarea de BLE y se lee desde loop(): la bandera
 // va al final para que loop() nunca vea un buffer a medio copiar.
@@ -31,7 +32,7 @@ UnlockCallbacks unlockCallbacks;
 
 void begin(const char* deviceName) {
   NimBLEDevice::init(deviceName);
-  NimBLEServer* server = NimBLEDevice::createServer();
+  server = NimBLEDevice::createServer();
   NimBLEService* service = server->createService(SERVICE_UUID);
 
   NimBLECharacteristic* unlock = service->createCharacteristic(UNLOCK_UUID, NIMBLE_PROPERTY::WRITE);
@@ -43,11 +44,22 @@ void begin(const char* deviceName) {
   statusChr->setValue(&none, 1);
 
   service->start();
-  NimBLEDevice::getAdvertising()->addServiceUUID(SERVICE_UUID);
+  // El servicio de 128 bits ocupa casi todo el paquete de anuncio, así que el nombre (el deviceId,
+  // hasta 24 caracteres) viaja en la respuesta al escaneo. La app de Pharmatrace busca la caja por
+  // ese nombre y, si no lo ve, lo confirma después leyendo el GAP Device Name.
+  NimBLEAdvertising* adv = NimBLEDevice::getAdvertising();
+  adv->addServiceUUID(SERVICE_UUID);
+  adv->setName(deviceName);
+  adv->enableScanResponse(true);
 }
 
 void startAdvertising() { NimBLEDevice::getAdvertising()->start(); }
 void stopAdvertising() { NimBLEDevice::getAdvertising()->stop(); }
+
+void keepAdvertising() {
+  NimBLEAdvertising* adv = NimBLEDevice::getAdvertising();
+  if (server != nullptr && server->getConnectedCount() == 0 && !adv->isAdvertising()) adv->start();
+}
 
 bool takeWrite(uint8_t* out, size_t cap, size_t& len) {
   if (!pendingReady) return false;

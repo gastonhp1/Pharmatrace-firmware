@@ -37,6 +37,7 @@ la caja solo comprueba la firma:
 
 | Estado | Puede abrir |
 |---|---|
+| Caja desactivada (`SetDeviceActive false`) | solo el regulador |
 | Caja sin cargamento activo | un usuario de la organización que la registró |
 | `OPEN` | un usuario de la organización dueña |
 | `IN_TRANSIT` | un usuario de la organización destinataria (`PendingTo`); ni el remitente ni el transportista |
@@ -117,6 +118,28 @@ contra el código del gateway** (`backend/iot/reading.js` y `window.js`): no val
 interpreta los tres primeros, así que 0x08/0x10 se aceptan y se ignoran. Hoy no generan eventos en el
 chaincode. Una tapa abierta (`LID_OPENED`) sin un `UNLOCK_GRANTED` cerca sería una **apertura forzada**.
 
+## Clave pública de apertura
+
+El backend genera la clave con `node scripts/unlock-key.js generate data/unlock-key.pem`, que imprime la pública
+ya con el formato de `include/unlock_key.h`. También la sirve en `GET /api/box/unlock-key` (sin autenticación,
+es pública). Rotarla implica volver a flashear las cajas.
+
+## Cliente: la app Android (PharmaTrace-mobile)
+
+La app ya implementa el lado del celular. Lo que espera de la caja, y que este firmware cumple (UUIDs, códigos de
+resultado 0 a 7 y tamaño del token se compararon contra `BoxProtocol.kt`):
+
+- Busca por el UUID del servicio y reconoce la caja por su nombre (el `deviceId`). El nombre viaja en la respuesta
+  al escaneo; si no lo ve, lo confirma leyendo el *Device Name* GAP (0x2A00). El firmware pone ambos.
+- Pide MTU 185; si no se lo dan, escribe el token con escritura larga (NimBLE la acepta).
+- Escribe con respuesta, se suscribe a `status` y espera la notificación hasta 8 s; si no llega, lee `status`.
+- Antes de escribir revisa el token (largo, versión, vida, caja, nonce): así un token malo no gasta uno de los 3
+  intentos de la caja.
+- Si la conexión se cae, reintenta mientras el QR siga vigente: por eso la caja vuelve a anunciarse al
+  desconectarse un cliente (`keepAdvertising()`).
+
+Todo esto contra el código, no contra una caja real: ni la app ni el firmware se probaron todavía en BLE de verdad.
+
 ## Estado del lado de Pharmatrace
 
 Ya implementado y mergeado en Pharmatrace (PR #17): sesiones de usuario por organización, `POST /api/box/unlock`,
@@ -137,6 +160,11 @@ Sigue pendiente:
   abrirla a distancia con un cómplice cerca. Mitigaciones: nonce de 120 s, un solo uso, 3 intentos; BLE tiene
   alcance corto; para más garantía, exigir que el celular esté cerca (RSSI) o agregar un PIN en pantalla.
 - La cerradura electrónica **no es seguridad física**: una caja abierta a la fuerza queda registrada, no evitada.
+- **Bloqueo por un tercero**: cualquiera dentro del alcance de BLE puede escribir tres tokens inválidos y dejar la
+  caja en `LockedOut` hasta que alguien apriete el botón. Hoy cuentan como intento todos los rechazos, incluso
+  los de formato, caja o nonce, que no requieren conocer nada. Idea: que solo cuenten como intento los rechazos
+  posteriores a un nonce correcto (adivinar una firma sí exige el QR). Cambiaría la semántica que asume la app
+  («cada rechazo gasta un intento»), así que se deja anotado.
 - El celular necesita internet en el momento de abrir.
 - El nonce sale de `esp_fill_random()` con BLE encendido; falta pasarlo al TRNG del ATECC608B.
 - Todo lo de BLE, e-paper, cerradura y ATECC608B es **código sin probar en hardware**.
@@ -145,6 +173,7 @@ Sigue pendiente:
 
 ```bash
 python3 tools/unlock_token.py gen-key clave.pem         # imprime la pública → include/unlock_key.h
+# o, con un backend de Pharmatrace corriendo: curl <backend>/api/box/unlock-key
 python3 tools/unlock_token.py sign clave.pem "PB1:VAL-001:<nonce del QR>"   # token en hex
 ```
 

@@ -132,3 +132,13 @@ lecturas firmadas con el mismo formato.
 ## Relación con Pharmatrace
 
 [Pharmatrace](https://github.com/gastonhp1/Pharmatrace) es ahora la versión sobre **Hyperledger Fabric**: chaincode en Go, red local de 4 organizaciones, API Express sobre Fabric Gateway y la carpeta `iot/`. La versión Solidity/Hardhat quedó en [Pharmatrace-evm](https://github.com/gastonhp1/Pharmatrace-evm). Este repo es aparte porque el ciclo de build, flasheo y versionado del firmware es independiente.
+
+Alrededor de la caja:
+
+| Repo | Rol para la PharmaBox |
+|---|---|
+| [Pharmatrace](https://github.com/gastonhp1/Pharmatrace) | Gateway que verifica y ancla las lecturas (`/api/iot`) y backend de apertura (`/api/box`): usuarios, política de quién puede abrir, auditoría y firma del token. Ver `iot/docs/BOX_UNLOCK.md` ahí |
+| [PharmaTrace-mobile](https://github.com/gastonhp1/PharmaTrace-mobile) | App Android: escanea el QR, le pide un token al backend y lo escribe por BLE. Sus UUIDs, códigos de resultado y tamaño de token se compararon contra el código de este firmware; lo que espera de la caja está en [`docs/unlock-protocol.md`](docs/unlock-protocol.md). No probada con una caja real |
+| [PharmaTrace-UI](https://github.com/gastonhp1/PharmaTrace-UI) | UI web sobre la misma API REST. No habla con la caja |
+
+Última verificación cruzada con estos repos: 2026-11-15. El formato de lectura y el token de apertura no cambiaron; el backend sumó la regla «caja desactivada: solo el regulador» y `GET /api/box/unlock-key`.

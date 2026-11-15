@@ -21,6 +21,11 @@ void begin(const char* deviceName);
 void startAdvertising();
 void stopAdvertising();
 
+// NimBLE deja de anunciar cuando un cliente se conecta. Si ese cliente se cae a mitad de camino
+// (la app reintenta), la caja tiene que volver a ser visible mientras el QR siga vigente. Llamar en
+// cada vuelta del loop() mientras haya un QR: solo actúa si nadie está conectado y no se anuncia.
+void keepAdvertising();
+
 // Devuelve true si llegó una escritura desde la última llamada y la copia en `out`.
 bool takeWrite(uint8_t* out, size_t cap, size_t& len);
 

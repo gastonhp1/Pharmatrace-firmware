@@ -209,6 +209,8 @@ static void serviceUnlock(uint32_t nowMs) {
     if (!challengeShown) startChallenge(nowMs);  // con un QR vigente, otro toque no hace nada
   }
 
+  if (challengeShown) ble_unlock::keepAdvertising();
+
   // El QR venció sin que nadie lo usara.
   if (challengeShown && !unlockSession.active(nowMs)) {
     endChallenge();
