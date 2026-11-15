@@ -22,7 +22,7 @@ primer resultado de esta guía es justamente ese: que compile y arranque. Anotá
 | Resistencias | 10 kΩ × 3, 100 kΩ × 2 | |
 | Hebilla eléctrica | Plug y jack de audio de 3,5 mm (mono alcanza) | 1 par |
 | Cinto | Cinta de nylon de 25 mm con hebilla plástica, largo para rodear la caja | 1 |
-| Cable del lazo | Cable fino multifilar, dos veces el largo del cinto | |
+| Cable del lazo | Cable fino multifilar, del largo del cinto | |
 | Cable de la sonda | Cable plano de 4 hilos, 40–50 cm | |
 | Botón y buzzer activo | Pulsador y buzzer de 3,3 V | 1 y 1 |
 | Protoboard y cables | El DevKitC-1 es ancho: conviene usar dos protoboards unidas o cables hembra | |
@@ -44,9 +44,10 @@ En este orden, probando cada paso antes de seguir:
 3. **LIS3DH** en el bus I2C (SDA 8, SCL 9), INT1 al GPIO5. Dirección 0x18 (SA0 a GND).
 4. **Sonda.** SHT4x y VEML7700 al final del cable plano: 3V3, GND, SDA, SCL. Con 40–50 cm el I2C funciona; si
    aparecen errores de lectura, acortar el cable o bajar la velocidad del bus.
-5. **Lazo.** 3V3 → 10 kΩ → GPIO4. Del GPIO4 sale el cable que recorre el cinto ida y vuelta y termina en el plug
-   de 3,5 mm, con una resistencia de 10 kΩ soldada **adentro del plug**, entre punta y masa. El jack va en el
-   módulo: un contacto al cable del lazo y el otro a GND. Enchufado: ~1,65 V. Desenchufado: ~3,3 V.
+5. **Lazo.** 3V3 → 10 kΩ → GPIO4. Del GPIO4 sale el cable que recorre el cinto de punta a punta y termina en la
+   punta del plug de 3,5 mm, con una resistencia de 10 kΩ soldada **adentro del plug**, entre punta y masa. El
+   jack va en el módulo, con su contacto de masa a GND: al enchufar, el cinto cierra el anillo alrededor de la
+   caja y el circuito a la vez. Cortar el cinto corta el cable. Enchufado: ~1,65 V. Desenchufado: ~3,3 V.
 6. **Botón** entre GPIO2 y GND. **Buzzer** entre GPIO47 y GND (con transistor si consume más de ~20 mA).
 7. **Batería** recién para la medición 2: salida de 5 V del cargador al pin 5V; divisor 100 kΩ + 100 kΩ desde
    VBAT al GPIO7.
